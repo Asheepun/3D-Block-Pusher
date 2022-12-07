@@ -1,0 +1,256 @@
+#include "engine/geometry.h"
+#include "engine/files.h"
+#include "engine/3d.h"
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb/stb_image.h"
+
+#include "glad/wgl.h"
+#include "glad/gl.h"
+
+#include "stdio.h"
+#include "math.h"
+#include "string.h"
+#include "stdlib.h"
+#include <vector>
+
+typedef struct Face{
+	unsigned int indices[9];
+}Face;
+
+void Model_initFromMeshData(Model *model_p, const unsigned char *mesh, int numberOfTriangles){
+
+	int componentSize = 2 * sizeof(Vec3f) + sizeof(Vec2f);
+
+	glGenBuffers(1, &model_p->VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, model_p->VBO);
+	glBufferData(GL_ARRAY_BUFFER, componentSize * 3 * numberOfTriangles, mesh, GL_STATIC_DRAW);
+
+	glGenVertexArrays(1, &model_p->VAO);
+	glBindVertexArray(model_p->VAO);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
+	glEnableVertexAttribArray(0);
+
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(5 * sizeof(float)));
+	glEnableVertexAttribArray(2);
+
+	model_p->numberOfTriangles = numberOfTriangles;
+
+}
+
+void Model_initFromFile_obj(Model *model_p, const char *path){
+
+	long int fileSize;
+	char *data = getFileData_mustFree(path, &fileSize);
+
+	std::vector<Vec3f> vertices;
+	std::vector<Vec2f> textureVertices;
+	std::vector<Vec3f> normalVertices;
+	std::vector<Face> faces;
+
+	//add null value in case model does not have certain coordinate type
+	vertices.push_back(getVec3f(0.0, 0.0, 0.0));
+	textureVertices.push_back(getVec2f(0.0, 0.0));
+	normalVertices.push_back(getVec3f(0.0, 0.0, 0.0));
+
+	for(int i = 0; i < fileSize; i++){
+
+		if(i == 0
+		|| data[i - 1] == *"\n"){
+
+			//handle vertex
+			if(data[i] == *"v" && data[i + 1] == *" "){
+
+				Vec3f vertex;
+
+				char *next_p;
+
+				vertex.x = strtof(data + i + 2, &next_p);
+				vertex.y = strtof(next_p + 1, &next_p);
+				vertex.z = strtof(next_p + 1, &next_p);
+
+				vertices.push_back(vertex);
+			
+			}
+
+			//handle texture vertex
+			if(data[i] == *"v" && data[i + 1] == *"t"){
+
+				Vec2f vertex;
+
+				char *next_p;
+
+				vertex.x = strtof(data + i + 2, &next_p);
+				vertex.y = strtof(next_p + 1, &next_p);
+
+				textureVertices.push_back(vertex);
+			
+			}
+
+			//handle normal vertex
+			if(data[i] == *"v" && data[i + 1] == *"n"){
+
+				Vec3f vertex;
+
+				char *next_p;
+
+				vertex.x = strtof(data + i + 2, &next_p);
+				vertex.y = strtof(next_p + 1, &next_p);
+				vertex.z = strtof(next_p + 1, &next_p);
+
+				normalVertices.push_back(vertex);
+			
+			}
+
+			//handle face
+			if(data[i] == *"f"){
+
+				Face face;
+
+				char *next_p = data + i;
+
+				for(int j = 0; j < 9; j++){
+					face.indices[j] = strtol(next_p + 1, &next_p, 10);
+				}
+
+				faces.push_back(face);
+
+				char *lastNext_p = next_p + 1;
+				strtol(next_p + 1, &next_p, 10);
+
+				if(lastNext_p != next_p){
+
+					Face face2;
+
+					char *next_p = data + i;
+
+					for(int j = 0; j < 3; j++){
+						face2.indices[j] = strtol(next_p + 1, &next_p, 10);
+					}
+
+					for(int j = 0; j < 3; j++){
+						strtol(next_p + 1, &next_p, 10);
+					}
+					for(int j = 0; j < 6; j++){
+						face2.indices[3 + j] = strtol(next_p + 1, &next_p, 10);
+					}
+
+					faces.push_back(face2);
+
+				}
+
+			}
+
+		}
+
+	}
+
+	printf("here doe\n");
+
+	faces.size();
+
+	int componentSize = 2 * sizeof(Vec3f) + sizeof(Vec2f);
+
+	unsigned char *mesh = (unsigned char *)malloc(3 * componentSize * faces.size());
+
+	for(int i = 0; i < faces.size(); i++){
+		
+		Face face = faces[i];
+
+		for(int j = 0; j < 3; j++){
+
+			//printf("is here\n");
+
+			//printf("%i\n", face.indices[3 * j + 0]);
+
+			memcpy(mesh + i * 3 * componentSize + j * componentSize, &vertices[face.indices[3 * j + 0]], sizeof(Vec3f));
+
+			//handle no texture coord
+			memcpy(mesh + i * 3 * componentSize + j * componentSize + sizeof(Vec3f), &textureVertices[face.indices[3 * j + 1]], sizeof(Vec2f));
+
+
+			memcpy(mesh + i * 3 * componentSize + j * componentSize + sizeof(Vec3f) + sizeof(Vec2f), &normalVertices[face.indices[3 * j + 2]], sizeof(Vec3f));
+
+		}
+
+	}
+
+	Model_initFromMeshData(model_p, mesh, faces.size());
+
+	free(mesh);
+	free(data);
+
+}
+
+void Texture_init(Texture *texture_p, const char *name, unsigned char *data, int width, int height){
+
+	String_set(texture_p->name, name, SMALL_STRING_SIZE);
+
+	glGenTextures(1, &texture_p->ID);
+
+	glBindTexture(GL_TEXTURE_2D, texture_p->ID);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+}
+
+void Texture_initFromFile(Texture *texture_p, const char *path, const char *name){
+
+	int width, height, channels;
+	unsigned char *data = stbi_load(path, &width, &height, &channels, 4);
+
+	Texture_init(texture_p, name, data, width, height);
+
+	free(data);
+
+}
+
+
+void GL3D_uniformMat4f(unsigned int shaderProgram, const char *locationName, Mat4f m){
+
+	unsigned int location = glGetUniformLocation(shaderProgram, locationName);
+
+	glUniformMatrix4fv(location, 1, GL_FALSE, (float *)m.values);
+
+}
+
+void GL3D_uniformVec3f(unsigned int shaderProgram, const char *locationName, Vec3f v){
+
+	unsigned int location = glGetUniformLocation(shaderProgram, locationName);
+
+	glUniform3f(location, v.x, v.y, v.z);
+
+}
+
+void GL3D_uniformVec4f(unsigned int shaderProgram, const char *locationName, Vec4f v){
+
+	unsigned int location = glGetUniformLocation(shaderProgram, locationName);
+
+	glUniform4f(location, v.x, v.y, v.z, v.w);
+
+}
+
+void GL3D_uniformInt(unsigned int shaderProgram, const char *locationName, int x){
+
+	unsigned int location = glGetUniformLocation(shaderProgram, locationName);
+
+	glUniform1i(location, x);
+
+}
+
+void GL3D_uniformFloat(unsigned int shaderProgram, const char *locationName, float x){
+
+	unsigned int location = glGetUniformLocation(shaderProgram, locationName);
+
+	glUniform1f(location, x);
+
+}
