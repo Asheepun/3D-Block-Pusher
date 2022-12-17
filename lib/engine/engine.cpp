@@ -500,9 +500,13 @@ int main(){
 
 		deltaTime = (endTicks - startTicks) / (CLOCKS_PER_SEC / 1000000);
 
+		//printf("\nframeTime: %i\n", deltaTime);
+
 		//printf("%f\n", (float)deltaTime / 1000);
 
 		int lag = frameTime - deltaTime;
+
+		//printf("lag: %i\n", lag);
 
 		if(lag < 0){
 			lag = 0;

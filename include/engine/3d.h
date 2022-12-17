@@ -7,6 +7,8 @@
 #include "glad/wgl.h"
 #include "glad/gl.h"
 
+#include <vector>
+
 typedef struct Model{
 	char name[STRING_SIZE];
 	unsigned int VBO;
@@ -19,9 +21,16 @@ typedef struct Texture{
 	unsigned int ID;
 }Texture;
 
+typedef struct VertexMesh{
+	Vec3f *vertices;
+	int length;
+}VertexMesh;
+
 void Model_initFromMeshData(Model *, const unsigned char *, int);
 
-void Model_initFromFile_obj(Model *, const char *);
+void Model_initFromFile_mesh(Model *, const char *);
+
+void VertexMesh_initFromFile_mesh(VertexMesh *, const char *);
 
 void Texture_init(Texture *, const char *, unsigned char *, int, int);
 
@@ -36,5 +45,7 @@ void GL3D_uniformVec4f(unsigned int, const char *, Vec4f);
 void GL3D_uniformInt(unsigned int, const char *, int);
 
 void GL3D_uniformFloat(unsigned int, const char *, float);
+
+void GL3D_uniformTexture(unsigned int, const char *, unsigned int, unsigned int);
 
 #endif

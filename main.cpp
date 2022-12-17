@@ -2,73 +2,82 @@
 #include "engine/geometry.h"
 #include "engine/3d.h"
 #include "engine/shaders.h"
+#include "engine/renderer2d.h"
+#include "engine/igui.h"
+
+#include "game.h"
 
 #include "stdio.h"
 #include "stdlib.h"
 #include "math.h"
+#include "time.h"
 #include <cstring>
 #include <vector>
 
-typedef struct Entity{
-	Vec3f pos;
-	Vec3f rotation;
-	float scale;
-	char modelName[SMALL_STRING_SIZE];
-	char textureName[SMALL_STRING_SIZE];
-}Entity;
+Game game;
 
-typedef struct PointLight{
-	Vec3f pos;
-	float strength;
-}PointEntity;
+Renderer2D_Renderer renderer2D;
 
 int TERRAIN_WIDTH = 50;
 
 float terrainScale = 100.0;
 float terrainTextureScale = 10.0;
 
-float PLAYER_SPEED = 0.10;
-float PLAYER_LOOK_SPEED = 0.0015;
-
-Model teapotModel;
 unsigned int modelShader;
 unsigned int shadowMapShader;
-
-Texture sheepTexture;
 
 int WIDTH = 1920;
 int HEIGHT = 1080;
 
 unsigned int shadowMapFBO;
 unsigned int shadowMapTexture;
-int SHADOW_MAP_WIDTH = 2000;
-int SHADOW_MAP_HEIGHT = 2000;
-float shadowMapScale = 100.0;
+int SHADOW_MAP_WIDTH = 5000;
+int SHADOW_MAP_HEIGHT = 5000;
+float shadowMapScale = 20.0;
 
 float fov = M_PI / 4;
 
-std::vector<Entity> entities;
-std::vector<PointLight> pointLights;
-std::vector<Model> models;
-std::vector<Texture> textures;
-
-Vec3f cameraPos = { 0.0, 3.0, 0.0 };
-Vec3f lastCameraPos = { 0.0, 3.0, 0.0 };
-Vec2f cameraRotation = { M_PI / 2, 0.0 };
-Vec3f cameraDirection = { 0.0, 0.0, 1.0 };
-
-Vec3f lightPos = { 0.0, 50.0, 0.0 };
-Vec3f lightDirection = { 0.1, -1.0, 0.0 };
+Vec3f lightPos = { -10.0, 20.0, -10.0 };
+Vec3f lightDirection = { 0.5, -1.0, 0.5 };
 
 int viewMode = 0;
 
-void Entity_init(Entity *entity_p, Vec3f pos, Vec3f rotation, float scale, const char *modelName, const char *textureName){
+static size_t currentEntityID = 0;
+
+void Entity_init(Entity *entity_p, Vec3f pos, Vec3f rotation, float scale, const char *modelName, const char *textureName, Vec4f color, enum EntityType type){
+
+	entity_p->ID = currentEntityID;
+	currentEntityID++;
 
 	entity_p->pos = pos;
 	entity_p->rotation = rotation;
 	entity_p->scale = scale;
+	entity_p->type = type;
+	entity_p->color = color;
 	String_set(entity_p->modelName, modelName, SMALL_STRING_SIZE);
 	String_set(entity_p->textureName, textureName, SMALL_STRING_SIZE);
+
+	entity_p->velocity = getVec3f(0.0, 0.0, 0.0);
+
+}
+
+void Game_addPlayer(Game *game_p, Vec3f pos){
+
+	Entity entity;
+
+	Entity_init(&entity, pos, getVec3f(0.0, 0.0, 0.0), 0.5, "cube", "cube-borders", getVec4f(0.0, 0.0, 1.0, 1.0), ENTITY_TYPE_PLAYER);
+
+	game_p->entities.push_back(entity);
+
+}
+
+void Game_addObstacle(Game *game_p, Vec3f pos){
+
+	Entity entity;
+
+	Entity_init(&entity, pos, getVec3f(0.0, 0.0, 0.0), 0.5, "cube", "cube-borders", getVec4f(1.0, 1.0, 1.0, 1.0), ENTITY_TYPE_OBSTACLE);
+
+	game_p->entities.push_back(entity);
 
 }
 
@@ -82,139 +91,62 @@ void Engine_start(){
 
 	Engine_setFPSMode(true);
 
-	//generate terrain
+	Renderer2D_init(&renderer2D, WIDTH, HEIGHT);
+
+	//init game
 	{
-		Vec3f *vertices = (Vec3f *)malloc(sizeof(Vec3f) * TERRAIN_WIDTH * TERRAIN_WIDTH);
 
-		for(int x = 0; x < TERRAIN_WIDTH; x++){
-			for(int z = 0; z < TERRAIN_WIDTH; z++){
-				float y = 2.0 * getRandom() / terrainScale;
-				*(vertices + x * TERRAIN_WIDTH + z) = getVec3f((float)x / (float)TERRAIN_WIDTH - 0.5, y, (float)z / (float)TERRAIN_WIDTH - 0.5);
-			}
-		}
+		game.currentGameState = GAME_STATE_EDITOR;
+		//game.currentGameState = GAME_STATE_LEVEL;
 
-		std::vector<Vec3f> triangles;
+		game.cameraPos = getVec3f(0.0, 6.0, -6.0);
+		game.lastCameraPos = game.cameraPos;
+		game.cameraRotation = getVec2f(M_PI / 2.0, -M_PI / 4.0);
+		game.cameraDirection = getVec3f(0.0, 0.0, 1.0);
 
-		for(int x = 0; x < TERRAIN_WIDTH - 1; x++){
-			for(int z = 0; z < TERRAIN_WIDTH - 1; z++){
+		VertexMesh_initFromFile_mesh(&game.cubeMesh,  "assets/models/untitled.mesh");
 
-				//first triangle in square
-				triangles.push_back(*(vertices + x * TERRAIN_WIDTH + z));
-				triangles.push_back(*(vertices + (x + 1) * TERRAIN_WIDTH + z + 1));
-				triangles.push_back(*(vertices + (x + 1) * TERRAIN_WIDTH + z));
-
-				//second triangle in square
-				triangles.push_back(*(vertices + x * TERRAIN_WIDTH + z));
-				triangles.push_back(*(vertices + (x) * TERRAIN_WIDTH + z + 1));
-				triangles.push_back(*(vertices + (x + 1) * TERRAIN_WIDTH + z + 1));
-
-			}
-		}
-
-		int componentSize = sizeof(Vec3f) * 2 + sizeof(Vec2f);
-
-		unsigned char *mesh = (unsigned char *)malloc(triangles.size() * componentSize);
-
-		for(int i = 0; i < triangles.size(); i++){
-
-			memcpy(mesh + i * componentSize, &triangles[i], sizeof(Vec3f));
-
-			Vec2f textureCoord = getVec2f(0.5 + triangles[i].x, 0.5 + triangles[i].z);
-			Vec2f_mulByFloat(&textureCoord, terrainTextureScale);
-
-			memcpy(mesh + i * componentSize + sizeof(Vec3f), &textureCoord, sizeof(Vec2f));
-
-			int baseIndex = (int)floor((float)i / 3.0) * 3;
-			Vec3f normal = getCrossVec3f(getSubVec3f(triangles[baseIndex], triangles[baseIndex + 1]), getSubVec3f(triangles[baseIndex], triangles[baseIndex + 2]));
-			Vec3f_normalize(&normal);
-
-			memcpy(mesh + i * componentSize + sizeof(Vec3f) + sizeof(Vec2f), &normal, sizeof(Vec3f));
-		
-		}
-
-		Model model;
-
-		Model_initFromMeshData(&model, mesh, triangles.size() / 3);
-
-		String_set(model.name, "terrain", STRING_SIZE);
-
-		models.push_back(model);
-
-		free(mesh);
-		free(vertices);
+		game.hoveredEntityID = -1;
 
 	}
 
 	{
 		Model model;
 
-		Model_initFromFile_obj(&model, "assets/models/untitled.obj");
+		Model_initFromFile_mesh(&model, "assets/models/untitled.mesh");
 
 		String_set(model.name, "cube", STRING_SIZE);
 
-		models.push_back(model);
+		game.models.push_back(model);
 	}
 	
-	/*
-	{
-		Model model;
+	Game_addPlayer(&game, getVec3f(0.0, 0.0, 0.0));
 
-		printf("began loading the dragon\n");
-
-		Model_initFromFile_obj(&model, "assets/models/dragon.obj");
-
-		String_set(model.name, "dragon", STRING_SIZE);
-
-		models.push_back(model);
-
-		printf("loaded the dragon\n");
-	}
-	*/
-	
-	{
-		Entity entity;
-		Entity_init(&entity, getVec3f(0.0, 0.0, 0.0), getVec3f(0.0, 0.0, 0.0), terrainScale, "terrain", "grass");
-		entities.push_back(entity);
-	}
-
-	{
-		Entity entity;
-		Entity_init(&entity, getVec3f(0.0, 6.0, 10.0), getVec3f(0.0, 0.0, 0.0), 1.0, "cube", "sheep");
-		entities.push_back(entity);
-	}
-
-	{
-		Entity entity;
-		Entity_init(&entity, getVec3f(0.0, 6.0, 5.0), getVec3f(0.0, 0.0, 0.0), 0.2, "cube", "sheep");
-		entities.push_back(entity);
-	}
-	
-	{
-		Entity entity;
-		Entity_init(&entity, getVec3f(0.0, 4.0, -5.0), getVec3f(0.0, 0.0, 0.0), 1.0, "cube", "blank");
-		entities.push_back(entity);
-	}
-	
-	{
-		Entity entity;
-		Entity_init(&entity, getVec3f(3.0, 4.0, 3.0), getVec3f(0.0, 0.0, 0.0), 1.0, "dragon", "sheep");
-		entities.push_back(entity);
+	for(float x = -5.0; x < 6; x += 1.0){
+		for(float z = -5.0; z < 6; z += 1.0){
+			Game_addObstacle(&game, getVec3f(x, -1.0, z));
+		}
 	}
 
 	{
 		Texture texture;
 		Texture_initFromFile(&texture, "assets/textures/wrapped-sheep.png", "sheep");
-		textures.push_back(texture);
+		game.textures.push_back(texture);
+	}
+	{
+		Texture texture;
+		Texture_initFromFile(&texture, "assets/textures/cube-borders.png", "cube-borders");
+		game.textures.push_back(texture);
 	}
 	{
 		Texture texture;
 		Texture_initFromFile(&texture, "assets/textures/grass.jpg", "grass");
-		textures.push_back(texture);
+		game.textures.push_back(texture);
 	}
 	{
 		Texture texture;
 		Texture_initFromFile(&texture, "assets/textures/blank.png", "blank");
-		textures.push_back(texture);
+		game.textures.push_back(texture);
 	}
 
 	glEnable(GL_BLEND);
@@ -271,7 +203,7 @@ void Engine_start(){
 
 }
 
-int time = 0;
+int gameTime = 0;
 
 void Engine_update(float deltaTime){
 
@@ -288,68 +220,32 @@ void Engine_update(float deltaTime){
 		viewMode = 0;
 	}
 
-	//handle camera movement
-	cameraRotation.x += -Engine_pointer.movement.x * PLAYER_LOOK_SPEED;
-	cameraRotation.y += -Engine_pointer.movement.y * PLAYER_LOOK_SPEED;
-
-	if(cameraRotation.y > M_PI / 2 - 0.01){
-		cameraRotation.y = M_PI / 2 - 0.01;
+	if(game.currentGameState == GAME_STATE_LEVEL){
+		Game_levelState(&game);
 	}
-	if(cameraRotation.y < -(M_PI / 2 - 0.01)){
-		cameraRotation.y = -(M_PI / 2 - 0.01);
+	if(game.currentGameState == GAME_STATE_EDITOR){
+		Game_editorState(&game);
 	}
 
-	cameraDirection.y = sin(cameraRotation.y);
-	cameraDirection.x = cos(cameraRotation.x) * cos(cameraRotation.y);
-	cameraDirection.z = sin(cameraRotation.x) * cos(cameraRotation.y);
-	Vec3f_normalize(&cameraDirection);
-
-	lastCameraPos = cameraPos;
-
-	if(Engine_keys[ENGINE_KEY_W].down){
-		cameraPos.x += cameraDirection.x * PLAYER_SPEED;
-		cameraPos.z += cameraDirection.z * PLAYER_SPEED;
-	}
-	if(Engine_keys[ENGINE_KEY_S].down){
-		cameraPos.x += -cameraDirection.x * PLAYER_SPEED;
-		cameraPos.z += -cameraDirection.z * PLAYER_SPEED;
-	}
-	if(Engine_keys[ENGINE_KEY_SPACE].down){
-		cameraPos.y += PLAYER_SPEED;
-	}
-	if(Engine_keys[ENGINE_KEY_SHIFT].down){
-		cameraPos.y += -PLAYER_SPEED;
-	}
-	if(Engine_keys[ENGINE_KEY_A].down){
-		Vec3f left = getCrossVec3f(cameraDirection, getVec3f(0, 1.0, 0));
-		Vec3f_normalize(&left);
-		cameraPos.x += left.x * PLAYER_SPEED;
-		cameraPos.z += left.z * PLAYER_SPEED;
-	}
-	if(Engine_keys[ENGINE_KEY_D].down){
-		Vec3f right = getCrossVec3f(getVec3f(0, 1.0, 0), cameraDirection);
-		Vec3f_normalize(&right);
-		cameraPos.x += right.x * PLAYER_SPEED;
-		cameraPos.z += right.z * PLAYER_SPEED;
-	}
-
-	time += 1;
-
-	//entities[0].rotation.x = (float)time / 50;
-	entities[1].rotation.y = (float)time / 100.0;
-
-	entities[4].rotation.z = (float)time / 50.0;
-	entities[3].pos.y = 2.0 + sin((float)time / 20.0);
-	//entities[3].rotation.y = (float)time / 100.0;
+	//set camera direction based on camera rotation
+	game.cameraDirection.y = sin(game.cameraRotation.y);
+	game.cameraDirection.x = cos(game.cameraRotation.x) * cos(game.cameraRotation.y);
+	game.cameraDirection.z = sin(game.cameraRotation.x) * cos(game.cameraRotation.y);
+	Vec3f_normalize(&game.cameraDirection);
 
 }
 
+clock_t startTicks = 0;
+clock_t endTicks = 0;
+
 void Engine_draw(){
+
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	glViewport(0, 0, Engine_clientWidth, Engine_clientHeight);
 
 	//setup camera matrix
-	Mat4f cameraMat4f = getLookAtMat4f(cameraPos, cameraDirection);
+	Mat4f cameraMat4f = getLookAtMat4f(game.cameraPos, game.cameraDirection);
 
 	//setup perspective matrix
 	Mat4f perspectiveMat4f = getPerspectiveMat4f(fov, (float)Engine_clientWidth / (float)Engine_clientHeight);
@@ -370,19 +266,21 @@ void Engine_draw(){
 
 	glCullFace(GL_BACK);
 
+	startTicks = clock();
+
 	glClearColor(1.0, 1.0, 1.0, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	//draw entities for shadow map
-	for(int i = 0; i < entities.size(); i++){
+	for(int i = 0; i < game.entities.size(); i++){
 
-		Entity *entity_p = &entities[i];
+		Entity *entity_p = &game.entities[i];
 
 		Model *model_p;
 
-		for(int j = 0; j < models.size(); j++){
-			if(strcmp(entity_p->modelName, models[j].name) == 0){
-				model_p = &models[j];
+		for(int j = 0; j < game.models.size(); j++){
+			if(strcmp(entity_p->modelName, game.models[j].name) == 0){
+				model_p = &game.models[j];
 			}
 		}
 
@@ -392,8 +290,6 @@ void Engine_draw(){
 
 		glBindBuffer(GL_ARRAY_BUFFER, model_p->VBO);
 		glBindVertexArray(model_p->VAO);
-
-		glBindTexture(GL_TEXTURE_2D, sheepTexture.ID);
 
 		Mat4f modelRotationMat4f = getIdentityMat4f();
 
@@ -409,10 +305,15 @@ void Engine_draw(){
 		GL3D_uniformMat4f(currentShaderProgram, "modelRotationMatrix", modelRotationMat4f);
 		GL3D_uniformMat4f(currentShaderProgram, "cameraMatrix", lightCameraMat4f);
 		GL3D_uniformFloat(currentShaderProgram, "shadowMapScale", shadowMapScale);
+		GL3D_uniformVec3f(currentShaderProgram, "lightDirection", lightDirection);
 
 		glDrawArrays(GL_TRIANGLES, 0, model_p->numberOfTriangles * 3);
 
 	}
+
+	endTicks = clock();
+
+	clock_t shadowMapTicks = endTicks - startTicks;
 
 	//draw world
 	if(viewMode == 0){
@@ -426,51 +327,50 @@ void Engine_draw(){
 
 	glCullFace(GL_FRONT);
 
+	startTicks = clock();
+
 	glClearColor(0.5, 0.5, 0.9, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	//draw entities
-	for(int i = 0; i < entities.size(); i++){
+	for(int i = 0; i < game.entities.size(); i++){
 
-		Entity *entity_p = &entities[i];
+		Entity *entity_p = &game.entities[i];
 
 		Model *model_p;
 
-		for(int j = 0; j < models.size(); j++){
-			if(strcmp(entity_p->modelName, models[j].name) == 0){
-				model_p = &models[j];
+		for(int j = 0; j < game.models.size(); j++){
+			if(strcmp(entity_p->modelName, game.models[j].name) == 0){
+				model_p = &game.models[j];
 			}
 		}
 
 		Texture *texture_p;
 
-		for(int j = 0; j < textures.size(); j++){
-			if(strcmp(entity_p->textureName, textures[j].name) == 0){
-				printf("%s\n", textures[j].name);
-				texture_p = &textures[j];
+		for(int j = 0; j < game.textures.size(); j++){
+			if(strcmp(entity_p->textureName, game.textures[j].name) == 0){
+				texture_p = &game.textures[j];
 			}
 		}
 
 		//unsigned int currentShaderProgram = shadowMapShader;
 		unsigned int currentShaderProgram = modelShader;
 
+		Vec4f color = entity_p->color;
+
+		if(entity_p->ID == game.hoveredEntityID){
+			color.x *= 0.5;
+			color.y *= 0.5;
+			color.z *= 0.5;
+		}
+
 		glUseProgram(currentShaderProgram);
 
 		glBindBuffer(GL_ARRAY_BUFFER, model_p->VBO);
 		glBindVertexArray(model_p->VAO);
 
-		//glBindTexture(GL_TEXTURE_2D, sheepTexture.ID);
-		//glBindTexture(GL_TEXTURE_2D, shadowMapTexture);
-
-		unsigned int location1 = glGetUniformLocation(currentShaderProgram, "colorTexture");
-		glUniform1i(location1, 0);
-		glActiveTexture(GL_TEXTURE0 + 0);
-		glBindTexture(GL_TEXTURE_2D, texture_p->ID);
-
-		unsigned int location2  = glGetUniformLocation(currentShaderProgram, "shadowMapTexture");
-		glUniform1i(location2,  1);
-		glActiveTexture(GL_TEXTURE0 + 1);
-		glBindTexture(GL_TEXTURE_2D, shadowMapTexture);
+		GL3D_uniformTexture(currentShaderProgram, "colorTexture", 0, texture_p->ID);
+		GL3D_uniformTexture(currentShaderProgram, "shadowMapTexture", 1, shadowMapTexture);
 
 		Mat4f modelRotationMat4f = getIdentityMat4f();
 
@@ -489,10 +389,26 @@ void Engine_draw(){
 		GL3D_uniformMat4f(currentShaderProgram, "lightCameraMatrix", lightCameraMat4f);
 		GL3D_uniformFloat(currentShaderProgram, "shadowMapScale", shadowMapScale);
 		GL3D_uniformVec3f(currentShaderProgram, "lightDirection", lightDirection);
+		GL3D_uniformVec4f(currentShaderProgram, "inputColor", color);
 
 		glDrawArrays(GL_TRIANGLES, 0, model_p->numberOfTriangles * 3);
 	
 	}
+
+	//draw HUD
+	Renderer2D_updateDrawSize(&renderer2D, Engine_clientWidth, Engine_clientHeight);
+
+	if(game.currentGameState == GAME_STATE_EDITOR){
+		Renderer2D_drawColoredRectangle(&renderer2D, WIDTH / 2 - 3, HEIGHT / 2 - 3, 6, 6, Renderer2D_getColor(0.7, 0.7, 0.7), 1.0);
+	}
+
+	endTicks = clock();
+
+	clock_t worldTicks = endTicks - startTicks;
+
+	//printf("\nRENDER TIMES\n");
+	//printf("shadow map: %f ms\n", (float)(shadowMapTicks / (float)(CLOCKS_PER_SEC / 1000)));
+	//printf("world:      %f ms\n", (float)(worldTicks / (float)(CLOCKS_PER_SEC / 1000)));
 
 }
 

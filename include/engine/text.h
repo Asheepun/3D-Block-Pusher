@@ -37,8 +37,8 @@ typedef struct Font{
 
 }Font;
 
-Font getFont(char *, int);
+Font getFont(const char *, int);
 
-char *getImageDataFromFontAndString_mustFree(Font, char *, int *, int *);
+char *getImageDataFromFontAndString_mustFree(Font, const char *, int *, int *);
 
 #endif

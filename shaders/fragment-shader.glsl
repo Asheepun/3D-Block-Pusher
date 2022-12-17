@@ -16,26 +16,28 @@ uniform mat4 lightCameraMatrix;
 
 uniform float shadowMapScale;
 
-uniform vec4 color;
+uniform vec4 inputColor;
 uniform vec3 lightDirection;
 
 float lightStrength = 1.0;
 
-float ambientLightFactor = 0.1;
-float diffuseLightFactor = 0.9;
+float ambientLightFactor = 0.3;
+float diffuseLightFactor = 0.7;
 
 void main(){
 
-	vec4 modelNormal = normalize(fragmentNormal * modelRotationMatrix);
+	vec4 modelNormal = fragmentNormal * modelRotationMatrix;
 	vec4 modelPosition = fragmentPosition * modelRotationMatrix * modelMatrix;
 	vec4 relativeModelPosition = modelPosition * cameraMatrix;
-
-	float shadowDepthNormalBias = -0.1;
 
 	vec4 lightRelativeModelPosition = (modelPosition) * lightCameraMatrix;
 
     vec4 color = texture2D(colorTexture, vec2(texturePosition.x, 1.0 - texturePosition.y));
-    //vec4 color = vec4(1.0, 1.0, 1.0, 1.0);
+
+	color.x *= inputColor.x;
+	color.y *= inputColor.y;
+	color.z *= inputColor.z;
+	color.w *= inputColor.w;
 
 	float alpha = color.w;
 
@@ -43,19 +45,25 @@ void main(){
 
 	float fragmentShadowDepth = lightRelativeModelPosition.z / 100.0;
 
-	float shadowDepthBias = 0.0;
+	float shadowDepthBias = 0.003;
+	float shadowDepthMaxBias = 0.006;
 
-	float shadowMapDepth = texture2D(shadowMapTexture, (vec2(1.0, 1.0) + (lightRelativeModelPosition.xy / shadowMapScale)) / 2.0).r;
+	shadowDepthBias = 0.0;
+	shadowDepthMaxBias = 0.0;
 
-	//is set to zero when statment is false
-	diffuseLight *= float(!(dot(lightDirection, modelNormal.xyz) > 0 || fragmentShadowDepth > shadowMapDepth + shadowDepthBias));
+	float shadowMapDepth = texture2D(shadowMapTexture, (vec2(1.0, 1.0) + ((lightRelativeModelPosition.xy) / shadowMapScale)) / 2.0).r;
+	diffuseLight *= float(!(dot(lightDirection, modelNormal.xyz) > 0 || fragmentShadowDepth > shadowMapDepth + max(shadowDepthBias * (1 - dot(lightDirection, modelNormal.xyz)), shadowDepthMaxBias)));
 
-	//if(dot(lightDirection, modelNormal.xyz) > 0
-	//|| fragmentShadowDepth > shadowMapDepth + shadowDepthBias){
-		//diffuseLight = 0.0;
-	//}
 
 	color *= ambientLightFactor + diffuseLightFactor * diffuseLight;
+
+	//color.x = 0.0;
+	//color.y = 0.0;
+	//color.z = 0.0;
+	//color.x = (1.0 + modelNormal.x) / 2.0;
+	//color.y = (1.0 + modelNormal.y) / 2.0;
+	//color.z = (1.0 + modelNormal.z) / 2.0;
+
 
 	FragColor = vec4(color.xyz, alpha);
 

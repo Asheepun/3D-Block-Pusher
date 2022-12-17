@@ -8,7 +8,7 @@
 #include "math.h"
 #include "stdio.h"
 
-Font getFont(char *fontPath, int fontSize){
+Font getFont(const char *fontPath, int fontSize){
 
 	Font font;
 
@@ -81,7 +81,7 @@ Font getFont(char *fontPath, int fontSize){
 	
 }
 
-char *getImageDataFromFontAndString_mustFree(Font font, char *string, int *outWidth, int *outHeight){
+char *getImageDataFromFontAndString_mustFree(Font font, const char *string, int *outWidth, int *outHeight){
 
 	//Texture texture;
 

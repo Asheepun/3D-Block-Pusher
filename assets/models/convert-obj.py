@@ -1,6 +1,6 @@
 import array
 
-fileName = "untitled"
+fileName = "bunny"
 
 objFile = open(fileName + ".obj", "r")
 
@@ -14,6 +14,11 @@ faces = []
 for i in range(0, len(lines)):
 
     words = lines[i].split(" ")
+
+    words = list(filter(lambda word: not (word == ""), words))
+
+    if(words == []):
+        continue
 
     if(words[0] == "v"):
         vertices.append([float(words[1]), float(words[2]), float(words[3])]);
@@ -29,6 +34,8 @@ for i in range(0, len(lines)):
         face = []
 
         for index in words[1].split("/") + words[2].split("/") + words[3].split("/"):
+            if(index == ""):
+                index = 0
             face.append(int(index))
 
         faces.append(face)
@@ -37,6 +44,8 @@ for i in range(0, len(lines)):
             face2 = []
 
             for index in words[1].split("/") + words[3].split("/") + words[4].split("/"):
+                if(index == ""):
+                    index = 0
                 face2.append(int(index))
 
             faces.append(face2)
