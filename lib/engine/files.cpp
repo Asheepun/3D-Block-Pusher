@@ -44,8 +44,8 @@ FileLine *getFileLines_mustFree(const char *path, int *numberOfLines_out){
 		}
 	}
 
-	FileLine *lines = (char (*)[256])malloc(numberOfLines * sizeof(FileLine));
-	memset(lines, 0, numberOfLines * STRING_SIZE);
+	FileLine *lines = (FileLine *)malloc(numberOfLines * sizeof(FileLine));
+	memset(lines, 0, numberOfLines * sizeof(FileLine));
 
 	int currentLine = 0;
 	int currentChar = 0;
@@ -55,7 +55,9 @@ FileLine *getFileLines_mustFree(const char *path, int *numberOfLines_out){
 			currentLine++;
 			currentChar = 0;
 		}else{
-			lines[currentLine][currentChar] = data[i];
+			if(currentChar < STRING_SIZE){
+				lines[currentLine][currentChar] = data[i];
+			}
 			currentChar++;
 		}
 
@@ -78,6 +80,8 @@ void writeDataToFile(const char *path, char *data_p, long int fileSize){
 	for(int i = 0; i < fileSize; i++){
 		fputc(data_p[i], fileHandle);
 	}
+
+	fputc(EOF, fileHandle);
 	
 	fclose(fileHandle);
 

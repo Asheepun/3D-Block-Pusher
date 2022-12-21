@@ -85,7 +85,7 @@ char *getImageDataFromFontAndString_mustFree(Font font, const char *string, int 
 
 	//Texture texture;
 
-	unsigned char *bitmap;
+	unsigned char *bitmap = NULL;
 	int width = 0;
 	int height = font.size;
 	char *imageData;
@@ -107,7 +107,8 @@ char *getImageDataFromFontAndString_mustFree(Font font, const char *string, int 
 	
 	}
 
-	bitmap = (unsigned char *)calloc(width * height, sizeof(unsigned char));
+	bitmap = (unsigned char *)malloc((width + 1) * (height + 1) * sizeof(unsigned char));//+1 due to potential bug in stb?
+	memset(bitmap, 0, width * height * sizeof(unsigned char));
 
 	int x = 0;
 	for(int i = 0; i < strlen(string); i++){

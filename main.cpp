@@ -4,6 +4,7 @@
 #include "engine/shaders.h"
 #include "engine/renderer2d.h"
 #include "engine/igui.h"
+#include "engine/strings.h"
 
 #include "game.h"
 
@@ -26,9 +27,6 @@ float terrainTextureScale = 10.0;
 unsigned int modelShader;
 unsigned int shadowMapShader;
 
-int WIDTH = 1920;
-int HEIGHT = 1080;
-
 unsigned int shadowMapFBO;
 unsigned int shadowMapTexture;
 int SHADOW_MAP_WIDTH = 5000;
@@ -42,45 +40,6 @@ Vec3f lightDirection = { 0.5, -1.0, 0.5 };
 
 int viewMode = 0;
 
-static size_t currentEntityID = 0;
-
-void Entity_init(Entity *entity_p, Vec3f pos, Vec3f rotation, float scale, const char *modelName, const char *textureName, Vec4f color, enum EntityType type){
-
-	entity_p->ID = currentEntityID;
-	currentEntityID++;
-
-	entity_p->pos = pos;
-	entity_p->rotation = rotation;
-	entity_p->scale = scale;
-	entity_p->type = type;
-	entity_p->color = color;
-	String_set(entity_p->modelName, modelName, SMALL_STRING_SIZE);
-	String_set(entity_p->textureName, textureName, SMALL_STRING_SIZE);
-
-	entity_p->velocity = getVec3f(0.0, 0.0, 0.0);
-
-}
-
-void Game_addPlayer(Game *game_p, Vec3f pos){
-
-	Entity entity;
-
-	Entity_init(&entity, pos, getVec3f(0.0, 0.0, 0.0), 0.5, "cube", "cube-borders", getVec4f(0.0, 0.0, 1.0, 1.0), ENTITY_TYPE_PLAYER);
-
-	game_p->entities.push_back(entity);
-
-}
-
-void Game_addObstacle(Game *game_p, Vec3f pos){
-
-	Entity entity;
-
-	Entity_init(&entity, pos, getVec3f(0.0, 0.0, 0.0), 0.5, "cube", "cube-borders", getVec4f(1.0, 1.0, 1.0, 1.0), ENTITY_TYPE_OBSTACLE);
-
-	game_p->entities.push_back(entity);
-
-}
-
 void Engine_start(){
 
 	printf("Starting the engine\n");
@@ -93,11 +52,14 @@ void Engine_start(){
 
 	Renderer2D_init(&renderer2D, WIDTH, HEIGHT);
 
+	IGUI_init(WIDTH, HEIGHT);
+
 	//init game
 	{
 
 		game.currentGameState = GAME_STATE_EDITOR;
 		//game.currentGameState = GAME_STATE_LEVEL;
+		game.mustInitGameState = true;
 
 		game.cameraPos = getVec3f(0.0, 6.0, -6.0);
 		game.lastCameraPos = game.cameraPos;
@@ -127,6 +89,10 @@ void Engine_start(){
 			Game_addObstacle(&game, getVec3f(x, -1.0, z));
 		}
 	}
+
+	Game_addObstacle(&game, getVec3f(2.0, 0.0, 2.0));
+	Game_addRock(&game, getVec3f(2.0, 0.0, 1.0));
+	Game_addStickyRock(&game, getVec3f(-2.0, 0.0, 1.0));
 
 	{
 		Texture texture;
@@ -207,23 +173,34 @@ int gameTime = 0;
 
 void Engine_update(float deltaTime){
 
-	if(Engine_keys[ENGINE_KEY_Q].down){
-		Engine_quit();
-	}
-	if(Engine_keys[ENGINE_KEY_F].downed){
-		Engine_toggleFullscreen();
-	}
-	if(Engine_keys[ENGINE_KEY_V].downed){
-		viewMode++;
-	}
-	if(viewMode > 1){
-		viewMode = 0;
+	if(!game.levelNameTextInputData.focused){
+		if(Engine_keys[ENGINE_KEY_Q].down){
+			Engine_quit();
+		}
+		if(Engine_keys[ENGINE_KEY_F].downed){
+			Engine_toggleFullscreen();
+		}
+		if(Engine_keys[ENGINE_KEY_V].downed){
+			viewMode++;
+		}
+		if(viewMode > 1){
+			viewMode = 0;
+		}
 	}
 
+	if(game.mustInitGameState){
+
+		if(game.currentGameState == GAME_STATE_LEVEL){
+			Game_initLevelState(&game);
+		}else if(game.currentGameState == GAME_STATE_EDITOR){
+			Game_initEditorState(&game);
+		}
+	
+		game.mustInitGameState = false;
+	}
 	if(game.currentGameState == GAME_STATE_LEVEL){
 		Game_levelState(&game);
-	}
-	if(game.currentGameState == GAME_STATE_EDITOR){
+	}else if(game.currentGameState == GAME_STATE_EDITOR){
 		Game_editorState(&game);
 	}
 
@@ -275,6 +252,10 @@ void Engine_draw(){
 	for(int i = 0; i < game.entities.size(); i++){
 
 		Entity *entity_p = &game.entities[i];
+
+		if(entity_p->color.w < 1.0){
+			continue;
+		}
 
 		Model *model_p;
 
@@ -333,74 +314,90 @@ void Engine_draw(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	//draw entities
-	for(int i = 0; i < game.entities.size(); i++){
+	for(int i = 0; i < 2; i++){
+		for(int j = 0; j < game.entities.size(); j++){
 
-		Entity *entity_p = &game.entities[i];
+			Entity *entity_p = &game.entities[j];
 
-		Model *model_p;
-
-		for(int j = 0; j < game.models.size(); j++){
-			if(strcmp(entity_p->modelName, game.models[j].name) == 0){
-				model_p = &game.models[j];
+			//handle transparency
+			if(entity_p->color.w < 1.0
+			&& i == 0
+			|| entity_p->color.w == 1.0
+			&& i == 1){
+				continue;
 			}
-		}
 
-		Texture *texture_p;
+			Model *model_p;
 
-		for(int j = 0; j < game.textures.size(); j++){
-			if(strcmp(entity_p->textureName, game.textures[j].name) == 0){
-				texture_p = &game.textures[j];
+			for(int k = 0; k < game.models.size(); k++){
+				if(strcmp(entity_p->modelName, game.models[j].name) == 0){
+					model_p = &game.models[j];
+				}
 			}
+
+			Texture *texture_p;
+
+			for(int k = 0; k < game.textures.size(); k++){
+				if(strcmp(entity_p->textureName, game.textures[k].name) == 0){
+					texture_p = &game.textures[k];
+				}
+			}
+
+			//unsigned int currentShaderProgram = shadowMapShader;
+			unsigned int currentShaderProgram = modelShader;
+
+			Vec4f color = entity_p->color;
+
+			if(entity_p->ID == game.hoveredEntityID){
+				color.x *= 0.5;
+				color.y *= 0.5;
+				color.z *= 0.5;
+			}
+
+			glUseProgram(currentShaderProgram);
+
+			glBindBuffer(GL_ARRAY_BUFFER, model_p->VBO);
+			glBindVertexArray(model_p->VAO);
+
+			GL3D_uniformTexture(currentShaderProgram, "colorTexture", 0, texture_p->ID);
+			GL3D_uniformTexture(currentShaderProgram, "shadowMapTexture", 1, shadowMapTexture);
+
+			Mat4f modelRotationMat4f = getIdentityMat4f();
+
+			Mat4f_mulByMat4f(&modelRotationMat4f, getRotationMat4f(entity_p->rotation.x, entity_p->rotation.y, entity_p->rotation.z));
+
+			Mat4f modelMat4f = getIdentityMat4f();
+
+			Mat4f_mulByMat4f(&modelMat4f, getTranslationMat4f(entity_p->pos.x, entity_p->pos.y, entity_p->pos.z));
+
+			Mat4f_mulByMat4f(&modelMat4f, getScalingMat4f(entity_p->scale));
+
+			GL3D_uniformMat4f(currentShaderProgram, "modelMatrix", modelMat4f);
+			GL3D_uniformMat4f(currentShaderProgram, "modelRotationMatrix", modelRotationMat4f);
+			GL3D_uniformMat4f(currentShaderProgram, "cameraMatrix", cameraMat4f);
+			GL3D_uniformMat4f(currentShaderProgram, "perspectiveMatrix", perspectiveMat4f);
+			GL3D_uniformMat4f(currentShaderProgram, "lightCameraMatrix", lightCameraMat4f);
+			GL3D_uniformFloat(currentShaderProgram, "shadowMapScale", shadowMapScale);
+			GL3D_uniformVec3f(currentShaderProgram, "lightDirection", lightDirection);
+			GL3D_uniformVec4f(currentShaderProgram, "inputColor", color);
+
+			glDrawArrays(GL_TRIANGLES, 0, model_p->numberOfTriangles * 3);
+		
 		}
-
-		//unsigned int currentShaderProgram = shadowMapShader;
-		unsigned int currentShaderProgram = modelShader;
-
-		Vec4f color = entity_p->color;
-
-		if(entity_p->ID == game.hoveredEntityID){
-			color.x *= 0.5;
-			color.y *= 0.5;
-			color.z *= 0.5;
-		}
-
-		glUseProgram(currentShaderProgram);
-
-		glBindBuffer(GL_ARRAY_BUFFER, model_p->VBO);
-		glBindVertexArray(model_p->VAO);
-
-		GL3D_uniformTexture(currentShaderProgram, "colorTexture", 0, texture_p->ID);
-		GL3D_uniformTexture(currentShaderProgram, "shadowMapTexture", 1, shadowMapTexture);
-
-		Mat4f modelRotationMat4f = getIdentityMat4f();
-
-		Mat4f_mulByMat4f(&modelRotationMat4f, getRotationMat4f(entity_p->rotation.x, entity_p->rotation.y, entity_p->rotation.z));
-
-		Mat4f modelMat4f = getIdentityMat4f();
-
-		Mat4f_mulByMat4f(&modelMat4f, getTranslationMat4f(entity_p->pos.x, entity_p->pos.y, entity_p->pos.z));
-
-		Mat4f_mulByMat4f(&modelMat4f, getScalingMat4f(entity_p->scale));
-
-		GL3D_uniformMat4f(currentShaderProgram, "modelMatrix", modelMat4f);
-		GL3D_uniformMat4f(currentShaderProgram, "modelRotationMatrix", modelRotationMat4f);
-		GL3D_uniformMat4f(currentShaderProgram, "cameraMatrix", cameraMat4f);
-		GL3D_uniformMat4f(currentShaderProgram, "perspectiveMatrix", perspectiveMat4f);
-		GL3D_uniformMat4f(currentShaderProgram, "lightCameraMatrix", lightCameraMat4f);
-		GL3D_uniformFloat(currentShaderProgram, "shadowMapScale", shadowMapScale);
-		GL3D_uniformVec3f(currentShaderProgram, "lightDirection", lightDirection);
-		GL3D_uniformVec4f(currentShaderProgram, "inputColor", color);
-
-		glDrawArrays(GL_TRIANGLES, 0, model_p->numberOfTriangles * 3);
-	
 	}
 
 	//draw HUD
+	glDisable(GL_DEPTH_TEST);
+
 	Renderer2D_updateDrawSize(&renderer2D, Engine_clientWidth, Engine_clientHeight);
 
 	if(game.currentGameState == GAME_STATE_EDITOR){
 		Renderer2D_drawColoredRectangle(&renderer2D, WIDTH / 2 - 3, HEIGHT / 2 - 3, 6, 6, Renderer2D_getColor(0.7, 0.7, 0.7), 1.0);
 	}
+
+	IGUI_render(&renderer2D);
+
+	glEnable(GL_DEPTH_TEST);
 
 	endTicks = clock();
 

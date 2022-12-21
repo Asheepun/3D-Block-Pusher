@@ -30,6 +30,10 @@ float getRandom(){
 	
 }
 
+float *coord(void *vector_p, int index){
+	return ((float *)vector_p) + index;
+}
+
 //VEC2F FUNCTIONS
 
 Vec2f getVec2f(float x, float y){

@@ -12,6 +12,16 @@ typedef struct Vec3f{
 	float x;
 	float y;
 	float z;
+
+	float& operator[] (int i){
+		switch(i){
+			case 0: return x;
+			case 1: return y;
+			case 2: return z;
+			default: throw "Coord index outside of vector bound";
+		}
+	}
+
 }Vec3f;
 
 typedef struct Vec4f{
@@ -19,6 +29,17 @@ typedef struct Vec4f{
 	float y;
 	float z;
 	float w;
+
+	float& operator[] (int i){
+		switch(i){
+			case 0: return x;
+			case 1: return y;
+			case 2: return z;
+			case 3: return w;
+			default: throw "Coord index outside of vector bound";
+		}
+	}
+
 }Vec4f;
 
 typedef struct Mat4f{
@@ -31,6 +52,8 @@ float normalize(float);
 float getSquared(float);
 
 float getRandom();
+
+float *coord(void *, int);
 
 //VEC2F FUNCTIONS
 Vec2f getVec2f(float, float);

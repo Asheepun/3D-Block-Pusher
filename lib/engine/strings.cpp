@@ -12,7 +12,7 @@ void String_set(char *destString, const char *sourceString, int size){
 	
 }
 
-void String_append(char *baseString, char *appendString){
+void String_append(char *baseString, const char *appendString){
 
 	memcpy(baseString + strlen(baseString), appendString, strlen(appendString));
 

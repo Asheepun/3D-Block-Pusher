@@ -1,6 +1,7 @@
 #include "engine/text.h"
 #include "engine/renderer2d.h"
 #include "engine/shaders.h"
+#include "engine/3d.h"
 
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
@@ -297,7 +298,8 @@ void Renderer2D_beginText(Renderer2D_Renderer *renderer_p, const char *text, int
 
 	Renderer2D_beginRectangle(renderer_p, x, y, width, height);
 
-	Renderer2D_setTexture(renderer_p, renderer_p->textTexture);
+	//Renderer2D_setTexture(renderer_p, renderer_p->textTexture);
+	GL3D_uniformTexture(renderer_p->textureShaderProgram.ID, "tex", 0, renderer_p->textTexture.ID);
 
 }
 

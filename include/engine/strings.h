@@ -7,7 +7,7 @@
 
 void String_set(char *, const char *, int);
 
-void String_append(char *, char *);
+void String_append(char *, const char *);
 
 void String_append_int(char *, int);
 

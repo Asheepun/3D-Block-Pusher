@@ -120,7 +120,6 @@ void IGUI_render(Renderer2D_Renderer *renderer_p){
 		
 		TextInput *textInput_p = &textInputs[i];
 
-
 		Renderer2D_drawColoredRectangle(renderer_p, textInput_p->pos.x - renderer_p->offset.x, textInput_p->pos.y - renderer_p->offset.y, textInput_p->size.x, textInput_p->size.y, textInput_p->color, alpha);
 
 		Renderer2D_drawText(renderer_p, textInput_p->text, textInput_p->pos.x - renderer_p->offset.x, textInput_p->pos.y - renderer_p->offset.y, textInput_p->size.y, font, alpha);
@@ -286,7 +285,7 @@ void IGUI_textInput(Vec2f pos, IGUI_TextInputData *textInputData_p){
 	TextInput textInput;
 
 	textInput.pos = pos;
-	textInput.size = getVec2f(500, 60);
+	textInput.size = getVec2f(600, 100);
 
 	//textInput.color = Renderer2D_getColor(1.0, 1.0, 1.0);
 	textInput.color = buttonColor;
@@ -335,5 +334,7 @@ void IGUI_textInput(Vec2f pos, IGUI_TextInputData *textInputData_p){
 	//String_set(textInput.text, "hello", STRING_SIZE);
 
 	textInput.cursorPosition = 0;
+
+	textInputs.push_back(textInput);
 
 }

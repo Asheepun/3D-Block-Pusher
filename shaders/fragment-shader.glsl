@@ -69,6 +69,10 @@ void main(){
 
 	float depth = relativeModelPosition.z / 100.0;
 
+	if(alpha < 1.0){
+		depth -= 0.00001;
+	}
+
 	gl_FragDepth = depth;
 
 } 
