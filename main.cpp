@@ -28,10 +28,13 @@ unsigned int modelShader;
 unsigned int shadowMapShader;
 
 unsigned int shadowMapFBO;
-unsigned int shadowMapTexture;
-int SHADOW_MAP_WIDTH = 5000;
-int SHADOW_MAP_HEIGHT = 5000;
-float shadowMapScale = 20.0;
+unsigned int shadowMapDepthTexture;
+unsigned int transparentShadowMapFBO;
+unsigned int transparentShadowMapDepthTexture;
+unsigned int transparentShadowMapColorTexture;
+int SHADOW_MAP_WIDTH = 2000;
+int SHADOW_MAP_HEIGHT = 2000;
+float shadowMapScale = 10.0;
 
 float fov = M_PI / 4;
 
@@ -71,7 +74,7 @@ void Engine_start(){
 		game.hoveredEntityID = -1;
 
 	}
-
+	
 	{
 		Model model;
 
@@ -81,6 +84,18 @@ void Engine_start(){
 
 		game.models.push_back(model);
 	}
+
+	/*
+	{
+		Model model;
+
+		Model_initFromFile_mesh(&model, "assets/models/untitled.mesh");
+
+		String_set(model.name, "cube", STRING_SIZE);
+
+		game.models.push_back(model);
+	}
+	*/
 	
 	Game_addPlayer(&game, getVec3f(0.0, 0.0, 0.0));
 
@@ -150,21 +165,46 @@ void Engine_start(){
 		shadowMapShader = shaderProgram;
 	}
 
-	//generate shadow map frame buffer
-	glGenFramebuffers(1, &shadowMapFBO);
-
-	glGenTextures(1, &shadowMapTexture);
-	glBindTexture(GL_TEXTURE_2D, shadowMapTexture);
+	//generate shadow map depth texture
+	glGenTextures(1, &shadowMapDepthTexture);
+	glBindTexture(GL_TEXTURE_2D, shadowMapDepthTexture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);  
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
+	//generate shadow map frame buffer
+	glGenFramebuffers(1, &shadowMapFBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, shadowMapFBO);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowMapTexture, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowMapDepthTexture, 0);
 	glDrawBuffer(GL_NONE);
 	glReadBuffer(GL_NONE);
+
+	//generate transparent shadow map depth texture
+	glGenTextures(1, &transparentShadowMapDepthTexture);
+	glBindTexture(GL_TEXTURE_2D, transparentShadowMapDepthTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glBindFramebuffer(GL_FRAMEBUFFER, transparentShadowMapFBO);
+
+	//generate transparent shadow map color texture
+	glGenTextures(1, &transparentShadowMapColorTexture);
+	glBindTexture(GL_TEXTURE_2D, transparentShadowMapColorTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	glGenFramebuffers(1, &transparentShadowMapFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, transparentShadowMapFBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, transparentShadowMapDepthTexture, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, transparentShadowMapColorTexture, 0);
+
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);  
 
 }
@@ -232,6 +272,7 @@ void Engine_draw(){
 	Mat4f lightCameraMat4f = getLookAtMat4f(lightPos, lightDirection);
 
 	//render shadow maps
+	/*
 	if(viewMode == 0){
 		glBindFramebuffer(GL_FRAMEBUFFER, shadowMapFBO);  
 		glViewport(0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
@@ -240,8 +281,10 @@ void Engine_draw(){
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);  
 		glViewport(0, 0, Engine_clientWidth, Engine_clientHeight);
 	}
+	*/
 
-	glCullFace(GL_BACK);
+	glDisable(GL_BLEND);
+	//glCullFace(GL_BACK);
 
 	startTicks = clock();
 
@@ -249,77 +292,25 @@ void Engine_draw(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	//draw entities for shadow map
-	for(int i = 0; i < game.entities.size(); i++){
-
-		Entity *entity_p = &game.entities[i];
-
-		if(entity_p->color.w < 1.0){
-			continue;
-		}
-
-		Model *model_p;
-
-		for(int j = 0; j < game.models.size(); j++){
-			if(strcmp(entity_p->modelName, game.models[j].name) == 0){
-				model_p = &game.models[j];
-			}
-		}
-
-		unsigned int currentShaderProgram = shadowMapShader;
-
-		glUseProgram(currentShaderProgram);
-
-		glBindBuffer(GL_ARRAY_BUFFER, model_p->VBO);
-		glBindVertexArray(model_p->VAO);
-
-		Mat4f modelRotationMat4f = getIdentityMat4f();
-
-		Mat4f_mulByMat4f(&modelRotationMat4f, getRotationMat4f(entity_p->rotation.x, entity_p->rotation.y, entity_p->rotation.z));
-
-		Mat4f modelMat4f = getIdentityMat4f();
-
-		Mat4f_mulByMat4f(&modelMat4f, getTranslationMat4f(entity_p->pos.x, entity_p->pos.y, entity_p->pos.z));
-
-		Mat4f_mulByMat4f(&modelMat4f, getScalingMat4f(entity_p->scale));
-
-		GL3D_uniformMat4f(currentShaderProgram, "modelMatrix", modelMat4f);
-		GL3D_uniformMat4f(currentShaderProgram, "modelRotationMatrix", modelRotationMat4f);
-		GL3D_uniformMat4f(currentShaderProgram, "cameraMatrix", lightCameraMat4f);
-		GL3D_uniformFloat(currentShaderProgram, "shadowMapScale", shadowMapScale);
-		GL3D_uniformVec3f(currentShaderProgram, "lightDirection", lightDirection);
-
-		glDrawArrays(GL_TRIANGLES, 0, model_p->numberOfTriangles * 3);
-
-	}
-
-	endTicks = clock();
-
-	clock_t shadowMapTicks = endTicks - startTicks;
-
-	//draw world
-	if(viewMode == 0){
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);  
-		glViewport(0, 0, Engine_clientWidth, Engine_clientHeight);
-	}
-	if(viewMode == 1){
-		glBindFramebuffer(GL_FRAMEBUFFER, shadowMapFBO);  
-		glViewport(0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
-	}
-
-	glCullFace(GL_FRONT);
-
-	startTicks = clock();
-
-	glClearColor(0.5, 0.5, 0.9, 1.0);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	//draw entities
 	for(int i = 0; i < 2; i++){
+
+		if(i == 0){
+			glBindFramebuffer(GL_FRAMEBUFFER, shadowMapFBO);  
+			glViewport(0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+		}
+		if(i == 1){
+			glBindFramebuffer(GL_FRAMEBUFFER, transparentShadowMapFBO);  
+			glViewport(0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+		}
+
+		glClearColor(1.0, 1.0, 1.0, 1.0);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 		for(int j = 0; j < game.entities.size(); j++){
 
 			Entity *entity_p = &game.entities[j];
 
-			//handle transparency
+			//handle transparency layers
 			if(entity_p->color.w < 1.0
 			&& i == 0
 			|| entity_p->color.w == 1.0
@@ -330,37 +321,17 @@ void Engine_draw(){
 			Model *model_p;
 
 			for(int k = 0; k < game.models.size(); k++){
-				if(strcmp(entity_p->modelName, game.models[j].name) == 0){
-					model_p = &game.models[j];
+				if(strcmp(entity_p->modelName, game.models[k].name) == 0){
+					model_p = &game.models[k];
 				}
 			}
 
-			Texture *texture_p;
-
-			for(int k = 0; k < game.textures.size(); k++){
-				if(strcmp(entity_p->textureName, game.textures[k].name) == 0){
-					texture_p = &game.textures[k];
-				}
-			}
-
-			//unsigned int currentShaderProgram = shadowMapShader;
-			unsigned int currentShaderProgram = modelShader;
-
-			Vec4f color = entity_p->color;
-
-			if(entity_p->ID == game.hoveredEntityID){
-				color.x *= 0.5;
-				color.y *= 0.5;
-				color.z *= 0.5;
-			}
+			unsigned int currentShaderProgram = shadowMapShader;
 
 			glUseProgram(currentShaderProgram);
 
 			glBindBuffer(GL_ARRAY_BUFFER, model_p->VBO);
 			glBindVertexArray(model_p->VAO);
-
-			GL3D_uniformTexture(currentShaderProgram, "colorTexture", 0, texture_p->ID);
-			GL3D_uniformTexture(currentShaderProgram, "shadowMapTexture", 1, shadowMapTexture);
 
 			Mat4f modelRotationMat4f = getIdentityMat4f();
 
@@ -374,15 +345,108 @@ void Engine_draw(){
 
 			GL3D_uniformMat4f(currentShaderProgram, "modelMatrix", modelMat4f);
 			GL3D_uniformMat4f(currentShaderProgram, "modelRotationMatrix", modelRotationMat4f);
-			GL3D_uniformMat4f(currentShaderProgram, "cameraMatrix", cameraMat4f);
-			GL3D_uniformMat4f(currentShaderProgram, "perspectiveMatrix", perspectiveMat4f);
-			GL3D_uniformMat4f(currentShaderProgram, "lightCameraMatrix", lightCameraMat4f);
+			GL3D_uniformMat4f(currentShaderProgram, "cameraMatrix", lightCameraMat4f);
 			GL3D_uniformFloat(currentShaderProgram, "shadowMapScale", shadowMapScale);
 			GL3D_uniformVec3f(currentShaderProgram, "lightDirection", lightDirection);
-			GL3D_uniformVec4f(currentShaderProgram, "inputColor", color);
+			GL3D_uniformVec4f(currentShaderProgram, "inputColor", entity_p->color);
 
 			glDrawArrays(GL_TRIANGLES, 0, model_p->numberOfTriangles * 3);
-		
+
+		}
+	}
+
+	endTicks = clock();
+
+	clock_t shadowMapTicks = endTicks - startTicks;
+
+	//draw world
+	if(viewMode == 0){
+
+		glEnable(GL_BLEND);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);  
+		glViewport(0, 0, Engine_clientWidth, Engine_clientHeight);
+
+		glCullFace(GL_FRONT);
+
+		startTicks = clock();
+
+		glClearColor(0.5, 0.5, 0.9, 1.0);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		//draw entities
+		for(int i = 0; i < 2; i++){
+			for(int j = 0; j < game.entities.size(); j++){
+
+				Entity *entity_p = &game.entities[j];
+
+				//handle transparency layers
+				if(entity_p->color.w < 1.0
+				&& i == 0
+				|| entity_p->color.w == 1.0
+				&& i == 1){
+					continue;
+				}
+
+				Model *model_p;
+
+				for(int k = 0; k < game.models.size(); k++){
+					if(strcmp(entity_p->modelName, game.models[j].name) == 0){
+						model_p = &game.models[j];
+					}
+				}
+
+				Texture *texture_p;
+
+				for(int k = 0; k < game.textures.size(); k++){
+					if(strcmp(entity_p->textureName, game.textures[k].name) == 0){
+						texture_p = &game.textures[k];
+					}
+				}
+
+				//unsigned int currentShaderProgram = shadowMapShader;
+				unsigned int currentShaderProgram = modelShader;
+
+				Vec4f color = entity_p->color;
+
+				if(entity_p->ID == game.hoveredEntityID){
+					color.x *= 0.5;
+					color.y *= 0.5;
+					color.z *= 0.5;
+				}
+
+				glUseProgram(currentShaderProgram);
+
+				glBindBuffer(GL_ARRAY_BUFFER, model_p->VBO);
+				glBindVertexArray(model_p->VAO);
+
+				GL3D_uniformTexture(currentShaderProgram, "colorTexture", 0, texture_p->ID);
+				GL3D_uniformTexture(currentShaderProgram, "shadowMapDepthTexture", 1, shadowMapDepthTexture);
+				GL3D_uniformTexture(currentShaderProgram, "transparentShadowMapDepthTexture", 2, transparentShadowMapDepthTexture);
+				GL3D_uniformTexture(currentShaderProgram, "transparentShadowMapColorTexture", 3, transparentShadowMapColorTexture);
+
+				Mat4f modelRotationMat4f = getIdentityMat4f();
+
+				Mat4f_mulByMat4f(&modelRotationMat4f, getRotationMat4f(entity_p->rotation.x, entity_p->rotation.y, entity_p->rotation.z));
+
+				Mat4f modelMat4f = getIdentityMat4f();
+
+				Mat4f_mulByMat4f(&modelMat4f, getTranslationMat4f(entity_p->pos.x, entity_p->pos.y, entity_p->pos.z));
+
+				Mat4f_mulByMat4f(&modelMat4f, getScalingMat4f(entity_p->scale));
+
+				GL3D_uniformMat4f(currentShaderProgram, "modelMatrix", modelMat4f);
+				GL3D_uniformMat4f(currentShaderProgram, "modelRotationMatrix", modelRotationMat4f);
+				GL3D_uniformMat4f(currentShaderProgram, "cameraMatrix", cameraMat4f);
+				GL3D_uniformMat4f(currentShaderProgram, "perspectiveMatrix", perspectiveMat4f);
+				GL3D_uniformMat4f(currentShaderProgram, "lightCameraMatrix", lightCameraMat4f);
+				GL3D_uniformFloat(currentShaderProgram, "shadowMapScale", shadowMapScale);
+				GL3D_uniformVec3f(currentShaderProgram, "lightDirection", lightDirection);
+				GL3D_uniformVec4f(currentShaderProgram, "inputColor", color);
+
+				glDrawArrays(GL_TRIANGLES, 0, model_p->numberOfTriangles * 3);
+			
+			}
 		}
 	}
 

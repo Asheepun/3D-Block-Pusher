@@ -3,10 +3,11 @@
 //in vec4 relativeModelPosition;
 in float depth;
 
+out vec4 FragColor;
+
 uniform mat4 modelMatrix;
 uniform mat4 modelRotationMatrix;
 uniform mat4 cameraMatrix;
-uniform vec4 inputColor;
 
 void main(){
 
@@ -15,9 +16,9 @@ void main(){
 	//float depth = shadowMapModelPosition.z / 100.0;
 	//float depth = relativeModelPosition.z / 100.0;
 
-	//gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-	gl_FragColor = inputColor;
+	gl_FragColor = vec4(depth, depth, depth, 1.0);
 
 	gl_FragDepth = depth;
 
 } 
+

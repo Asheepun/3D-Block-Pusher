@@ -57,6 +57,7 @@ Vec3f moveFunc(Vec3f startPos, Vec3f endPos, float t){
 void Game_initLevelState(Game *game_p){
 
 	entityIDGrid.clear();
+	undoArray.clear();
 
 	for(int x = 0; x < levelWidth; x++){
 		for(int y = 0; y < levelHeight; y++){
