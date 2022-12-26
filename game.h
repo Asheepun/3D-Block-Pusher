@@ -19,6 +19,7 @@ enum EntityType{
 	ENTITY_TYPE_STICKY_ROCK,
 	ENTITY_TYPE_GOAL,
 	ENTITY_TYPE_PLAYER,
+	ENTITY_TYPE_LEVEL_DOOR,
 	NUMBER_OF_ENTITY_TYPES,
 };
 
@@ -33,6 +34,7 @@ typedef struct Entity{
 	float scale;
 	char modelName[SMALL_STRING_SIZE];
 	char textureName[SMALL_STRING_SIZE];
+	char levelName[SMALL_STRING_SIZE];
 	Vec4f color;
 }Entity;
 
@@ -56,6 +58,7 @@ typedef struct Game{
 	size_t hoveredEntityID;
 	//char currentLevel[STRING_SIZE];
 	IGUI_TextInputData levelNameTextInputData;
+	IGUI_TextInputData levelDoorNameTextInputData;
 
 }Game;
 
@@ -72,6 +75,7 @@ static Vec4f OBSTACLE_COLOR = { 0.8, 0.6, 0.3, 1.0 };
 static Vec4f ROCK_COLOR = { 0.7, 0.7, 0.7, 1.0 };
 static Vec4f STICKY_ROCK_COLOR = { 0.1, 1.0, 0.2, 1.0 };
 static Vec4f GOAL_COLOR = { 0.1, 0.1, 0.9, 0.5 };
+static Vec4f LEVEL_DOOR_COLOR = { 1.0, 1.0, 1.0, 0.5 };
 
 static const char *ENTITY_TYPE_NAMES[] = {
 	"Obstacle",
@@ -79,6 +83,7 @@ static const char *ENTITY_TYPE_NAMES[] = {
 	"Sticky Rock",
 	"Goal",
 	"Player",
+	"Level Door",
 };
 
 //FILE: world.cpp
@@ -92,6 +97,7 @@ void Game_addObstacle(Game *, Vec3f);
 void Game_addRock(Game *, Vec3f);
 void Game_addStickyRock(Game *, Vec3f);
 void Game_addGoal(Game *, Vec3f);
+void Game_addLevelDoor(Game *, Vec3f, const char *);
 
 //FILE: levelState.cpp
 

@@ -72,7 +72,7 @@ void main(){
 
 	if(inTransparentShadow){
 		//shadowedColor = vec4(1.0, 0.0, 0.0, 1.0);
-		shadowedColor = color * ambientLightFactor + transparentShadowMapColor * diffuseLight * diffuseLightFactor;
+		shadowedColor = color * ambientLightFactor + transparentShadowMapColor * diffuseLight * diffuseLightFactor * (1.0 - transparentShadowMapColor.w);
 		//color += diffuseLight * diffuseLightFactor * shadowMapColor;
 	}
 

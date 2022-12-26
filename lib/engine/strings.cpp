@@ -22,7 +22,7 @@ void String_append_int(char *baseString, int value){
 
 	char buff[STRING_SIZE];
 	memset(buff, 0, STRING_SIZE);
-	
+
 	sprintf(buff, "%i", value);
 
 	memcpy(baseString + strlen(baseString), buff, strlen(buff));
@@ -33,7 +33,7 @@ void String_append_float(char *baseString, float value){
 
 	char buff[STRING_SIZE];
 	memset(buff, 0, STRING_SIZE);
-	
+
 	sprintf(buff, "%f", value);
 
 	memcpy(baseString + strlen(baseString), buff, strlen(buff));

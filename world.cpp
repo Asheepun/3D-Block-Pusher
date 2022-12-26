@@ -26,6 +26,7 @@ void Entity_init(Entity *entity_p, Vec3f pos, Vec3f rotation, float scale, const
 	String_set(entity_p->modelName, modelName, SMALL_STRING_SIZE);
 	String_set(entity_p->textureName, textureName, SMALL_STRING_SIZE);
 
+	String_set(entity_p->levelName, "", SMALL_STRING_SIZE);
 	entity_p->velocity = getVec3f(0.0, 0.0, 0.0);
 
 }
@@ -102,6 +103,18 @@ void Game_addGoal(Game *game_p, Vec3f pos){
 	Entity entity;
 
 	Entity_init(&entity, pos, getVec3f(0.0, 0.0, 0.0), 0.5, "cube", "cube-borders", GOAL_COLOR, ENTITY_TYPE_GOAL);
+
+	game_p->entities.push_back(entity);
+
+}
+
+void Game_addLevelDoor(Game *game_p, Vec3f pos, const char *levelName){
+
+	Entity entity;
+
+	Entity_init(&entity, pos, getVec3f(0.0, 0.0, 0.0), 0.5, "cube", "cube-borders", LEVEL_DOOR_COLOR, ENTITY_TYPE_LEVEL_DOOR);
+
+	String_set(entity.levelName, levelName, SMALL_STRING_SIZE);
 
 	game_p->entities.push_back(entity);
 

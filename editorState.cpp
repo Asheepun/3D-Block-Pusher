@@ -15,6 +15,7 @@
 enum EditingMode{
 	EDITING_MODE_PLACE,
 	EDITING_MODE_REMOVE,
+	EDITING_MODE_EDIT,
 }EditingMode;
 
 enum InterfaceMode{
@@ -29,11 +30,18 @@ enum InterfaceMode currentInterfaceMode;
 bool openingLevel = false;
 bool firstInit = false;
 
+bool editingEntity;
+size_t editingEntityID;
+
 void Game_initEditorState(Game *game_p){
 
 	Game_loadLevelFile(game_p, "working.level");
 
 	currentInterfaceMode = INTERFACE_MODE_MENU;
+
+	IGUI_TextInputData_init(&game_p->levelDoorNameTextInputData, "", 0);
+	editingEntity = false;
+	editingEntityID = -1;
 
 	if(!firstInit){
 
@@ -51,7 +59,8 @@ void Game_editorState(Game *game_p){
 
 	printf("---\n");
 
-	if(!game_p->levelNameTextInputData.focused){
+	if(!game_p->levelNameTextInputData.focused
+	&& !game_p->levelDoorNameTextInputData.focused){
 		if(Engine_keys[ENGINE_KEY_G].downed){
 			game_p->currentGameState = GAME_STATE_LEVEL;
 			game_p->mustInitGameState = true;
@@ -88,6 +97,10 @@ void Game_editorState(Game *game_p){
 		if(IGUI_textButton_click("Remove", pos, 100, currentEditingMode == EDITING_MODE_REMOVE)){
 			currentEditingMode = EDITING_MODE_REMOVE;
 		}
+		pos.y += 120;
+		if(IGUI_textButton_click("Edit", pos, 100, currentEditingMode == EDITING_MODE_EDIT)){
+			currentEditingMode = EDITING_MODE_EDIT;
+		}
 
 		pos = getVec2f(400, 20);
 
@@ -101,6 +114,21 @@ void Game_editorState(Game *game_p){
 				pos.y += 100;
 
 			}
+		}
+
+		if(currentEditingMode != EDITING_MODE_EDIT){
+			editingEntity = false;
+			editingEntityID = -1;
+		}
+		if(currentEditingMode == EDITING_MODE_EDIT
+		&& editingEntity){
+
+			IGUI_textInput(getVec2f(400, 20), &game_p->levelDoorNameTextInputData);
+
+			Entity *editingEntity_p = Game_getEntityByID(game_p, editingEntityID);
+
+			String_set(editingEntity_p->levelName, game_p->levelDoorNameTextInputData.text, SMALL_STRING_SIZE);
+			
 		}
 
 		IGUI_textInput(getVec2f(WIDTH - 900, 20), &game_p->levelNameTextInputData);
@@ -134,10 +162,11 @@ void Game_editorState(Game *game_p){
 					if(IGUI_textButton_click(levelName, pos, 80, false)){
 
 						String_set(game_p->levelNameTextInputData.text, levelName, STRING_SIZE);
-						//String_set(game_p->currentLevel, game_p->levelNameTextInputData.text, STRING_SIZE);
 
-						//Game_loadLevelByName(game_p, game_p->currentLevel);
 						Game_loadLevelByName(game_p, game_p->levelNameTextInputData.text);
+
+						editingEntity = false;
+						editingEntityID = -1;
 
 						madeEdit = true;
 
@@ -302,6 +331,9 @@ void Game_editorState(Game *game_p){
 				if(currentEntityType == ENTITY_TYPE_GOAL){
 					Game_addGoal(game_p, placePos);
 				}
+				if(currentEntityType == ENTITY_TYPE_LEVEL_DOOR){
+					Game_addLevelDoor(game_p, placePos, "");
+				}
 
 				madeEdit = true;
 			}
@@ -311,6 +343,21 @@ void Game_editorState(Game *game_p){
 				Game_removeEntityByID(game_p, hitEntity_p->ID);
 
 				madeEdit = true;
+
+			}
+
+			if(currentEditingMode == EDITING_MODE_EDIT){
+				
+				Entity *hoveredEntity_p = Game_getEntityByID(game_p, game_p->hoveredEntityID);
+
+				if(hoveredEntity_p->type == ENTITY_TYPE_LEVEL_DOOR){
+					editingEntity = true;
+					editingEntityID = game_p->hoveredEntityID;
+
+					IGUI_TextInputData_init(&game_p->levelDoorNameTextInputData, hoveredEntity_p->levelName, SMALL_STRING_SIZE);
+
+					currentInterfaceMode = INTERFACE_MODE_MENU;
+				}
 
 			}
 

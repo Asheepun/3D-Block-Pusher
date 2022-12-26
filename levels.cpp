@@ -45,6 +45,12 @@ void Game_writeCurrentLevelStateToFile(Game *game_p, const char *path){
 		String_append_float(data, entity_p->color.w);
 		String_append(data, "\n");
 
+		if(!(strcmp(entity_p->levelName, "") == 0)){
+			String_append(data, "-levelName\n");
+			String_append(data, entity_p->levelName);
+			String_append(data, "\n");
+		}
+
 		String_append(data, ":end-entity\n");
 	
 	}
@@ -55,9 +61,6 @@ void Game_writeCurrentLevelStateToFile(Game *game_p, const char *path){
 
 void Game_loadLevelFile(Game *game_p, const char *path){
 
-	printf("hello\n");
-	printf("%s\n", path);
-
 	int numberOfLines;
 	FileLine *fileLines = getFileLines_mustFree(path, &numberOfLines);
 
@@ -66,6 +69,8 @@ void Game_loadLevelFile(Game *game_p, const char *path){
 	enum EntityType type;
 	Vec3f pos;
 	Vec4f color;
+	char levelName[SMALL_STRING_SIZE];
+	String_set(levelName, "", SMALL_STRING_SIZE);
 
 	char *ptr = NULL;
 
@@ -93,13 +98,22 @@ void Game_loadLevelFile(Game *game_p, const char *path){
 			}
 		}
 
+		if(strcmp(fileLines[i], "-levelName") == 0){
+			String_set(levelName, fileLines[i + 1], SMALL_STRING_SIZE);
+		}
+
 		if(strcmp(fileLines[i], ":end-entity") == 0){
 
 			Entity entity;
 
 			Entity_init(&entity, pos, getVec3f(0.0, 0.0, 0.0), 0.5, "cube", "cube-borders", color, type);
 
+			String_set(entity.levelName, levelName, SMALL_STRING_SIZE);
+
 			game_p->entities.push_back(entity);
+
+			//reset collecting values
+			String_set(levelName, "", SMALL_STRING_SIZE);
 
 		}
 

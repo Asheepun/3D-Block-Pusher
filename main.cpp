@@ -84,18 +84,6 @@ void Engine_start(){
 
 		game.models.push_back(model);
 	}
-
-	/*
-	{
-		Model model;
-
-		Model_initFromFile_mesh(&model, "assets/models/untitled.mesh");
-
-		String_set(model.name, "cube", STRING_SIZE);
-
-		game.models.push_back(model);
-	}
-	*/
 	
 	Game_addPlayer(&game, getVec3f(0.0, 0.0, 0.0));
 
@@ -213,7 +201,8 @@ int gameTime = 0;
 
 void Engine_update(float deltaTime){
 
-	if(!game.levelNameTextInputData.focused){
+	if(!game.levelNameTextInputData.focused
+	&& !game.levelDoorNameTextInputData.focused){
 		if(Engine_keys[ENGINE_KEY_Q].down){
 			Engine_quit();
 		}
@@ -272,39 +261,33 @@ void Engine_draw(){
 	Mat4f lightCameraMat4f = getLookAtMat4f(lightPos, lightDirection);
 
 	//render shadow maps
-	/*
-	if(viewMode == 0){
-		glBindFramebuffer(GL_FRAMEBUFFER, shadowMapFBO);  
-		glViewport(0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
-	}
-	if(viewMode == 1){
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);  
-		glViewport(0, 0, Engine_clientWidth, Engine_clientHeight);
-	}
-	*/
-
 	glDisable(GL_BLEND);
-	//glCullFace(GL_BACK);
 
 	startTicks = clock();
 
-	glClearColor(1.0, 1.0, 1.0, 1.0);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	if(viewMode == 1){
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);  
+		glViewport(0, 0, Engine_clientWidth, Engine_clientHeight);
+		glClearColor(1.0, 1.0, 1.0, 1.0);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	}
 
 	//draw entities for shadow map
 	for(int i = 0; i < 2; i++){
 
-		if(i == 0){
-			glBindFramebuffer(GL_FRAMEBUFFER, shadowMapFBO);  
-			glViewport(0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
-		}
-		if(i == 1){
-			glBindFramebuffer(GL_FRAMEBUFFER, transparentShadowMapFBO);  
-			glViewport(0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
-		}
+		if(viewMode == 0){
+			if(i == 0){
+				glBindFramebuffer(GL_FRAMEBUFFER, shadowMapFBO);  
+				glViewport(0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+			}
+			if(i == 1){
+				glBindFramebuffer(GL_FRAMEBUFFER, transparentShadowMapFBO);  
+				glViewport(0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+			}
 
-		glClearColor(1.0, 1.0, 1.0, 1.0);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			glClearColor(1.0, 1.0, 1.0, 1.0);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		}
 
 		for(int j = 0; j < game.entities.size(); j++){
 

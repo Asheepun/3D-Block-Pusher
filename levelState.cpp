@@ -7,6 +7,7 @@
 
 #include "math.h"
 #include "stdio.h"
+#include "string.h"
 
 enum Actions{
 	ACTION_MOVE_UP,
@@ -55,6 +56,8 @@ Vec3f moveFunc(Vec3f startPos, Vec3f endPos, float t){
 }
 
 void Game_initLevelState(Game *game_p){
+
+	printf("level state init\n");
 
 	entityIDGrid.clear();
 	undoArray.clear();
@@ -173,6 +176,71 @@ void Game_levelState(Game *game_p){
 		//save entities for undo
 		if(didAction){
 			undoArray.push_back(game_p->entities);
+		}
+
+		//check if player collides with level door
+		for(int i = 0; i < game_p->entities.size(); i++){
+
+			Entity *entity1_p = &game_p->entities[i];
+
+			if(entity1_p->type == ENTITY_TYPE_PLAYER){
+
+				for(int j = 0; j < game_p->entities.size(); j++){
+
+					Entity *entity2_p = &game_p->entities[j];
+
+					if(i != j
+					&& entity2_p->type == ENTITY_TYPE_LEVEL_DOOR
+					&& checkEqualsVec3f(entity1_p->pos, entity2_p->pos, 0.001)
+					&& !(strcmp(entity2_p->levelName, "") == 0)){
+
+						game_p->mustInitGameState = true;
+						Game_loadLevelByName(game_p, entity2_p->levelName);
+
+						return;
+					}
+					
+				}
+			
+			}
+
+		}
+
+		//check if player covers goals
+		{
+			int numberOfGoals = 0;
+			int numberOfCoveredGoals = 0;
+
+			for(int i = 0; i < game_p->entities.size(); i++){
+
+				Entity *entity1_p = &game_p->entities[i];
+
+				if(entity1_p->type == ENTITY_TYPE_GOAL){
+
+					numberOfGoals++;
+
+					for(int j = 0; j < game_p->entities.size(); j++){
+
+						Entity *entity2_p = &game_p->entities[j];
+
+						if(i != j
+						&& entity2_p->type == ENTITY_TYPE_PLAYER
+						&& checkEqualsVec3f(entity1_p->pos, entity2_p->pos, 0.001)){
+							numberOfCoveredGoals++;
+							break;
+						}
+
+					}
+
+				}
+
+			}
+
+			if(numberOfCoveredGoals == numberOfGoals
+			&& numberOfGoals > 0){
+				game_p->mustInitGameState = true;
+				Game_loadLevelByName(game_p, "levelhub");
+			}
 		}
 
 		//check if entities are oub
