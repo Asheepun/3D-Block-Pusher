@@ -53,7 +53,7 @@ float getSquared(float);
 
 float getRandom();
 
-float *coord(void *, int);
+bool checkEqualsFloat(float, float, float);
 
 //VEC2F FUNCTIONS
 Vec2f getVec2f(float, float);

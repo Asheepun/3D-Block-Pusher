@@ -65,6 +65,7 @@ void Game_loadLevelFile(Game *game_p, const char *path){
 	FileLine *fileLines = getFileLines_mustFree(path, &numberOfLines);
 
 	game_p->entities.clear();
+	game_p->numberOfPlayers = 0;
 
 	enum EntityType type;
 	Vec3f pos;
@@ -109,6 +110,11 @@ void Game_loadLevelFile(Game *game_p, const char *path){
 			Entity_init(&entity, pos, getVec3f(0.0, 0.0, 0.0), 0.5, "cube", "cube-borders", color, type);
 
 			String_set(entity.levelName, levelName, SMALL_STRING_SIZE);
+
+			if(type == ENTITY_TYPE_PLAYER){
+				entity.playerID = game_p->numberOfPlayers;		
+				game_p->numberOfPlayers++;
+			}
 
 			game_p->entities.push_back(entity);
 

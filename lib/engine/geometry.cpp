@@ -30,8 +30,8 @@ float getRandom(){
 	
 }
 
-float *coord(void *vector_p, int index){
-	return ((float *)vector_p) + index;
+bool checkEqualsFloat(float x, float y, float tolerance){
+	return fabs(x - y) < tolerance;
 }
 
 //VEC2F FUNCTIONS

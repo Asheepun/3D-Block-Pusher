@@ -20,7 +20,7 @@ bool moving = false;
 float moveTime = 0.0;
 int timeNotMoving = 0;
 
-int levelWidth = 20;
+int levelWidth = 30;
 int levelHeight = 10;
 
 int undoKeyHoldTime = 0;
@@ -57,8 +57,6 @@ Vec3f moveFunc(Vec3f startPos, Vec3f endPos, float t){
 
 void Game_initLevelState(Game *game_p){
 
-	printf("level state init\n");
-
 	entityIDGrid.clear();
 	undoArray.clear();
 
@@ -85,8 +83,10 @@ void Game_levelState(Game *game_p){
 
 	game_p->hoveredEntityID = -1;
 
-	game_p->cameraPos = getVec3f(0.0, 6.0, -6.0);
-	game_p->cameraRotation = getVec2f(M_PI / 2.0, -M_PI / 4.0);
+	//game_p->cameraPos = getVec3f(0.0, 6.0, -6.0);
+	//game_p->cameraRotation = getVec2f(M_PI / 2.0, -M_PI / 4.0);
+	game_p->cameraPos = STANDARD_CAMERA_POS;
+	game_p->cameraRotation = STANDARD_CAMERA_ROTATION;
 
 	if(Engine_keys[ENGINE_KEY_A].downed
 	|| (Engine_keys[ENGINE_KEY_A].down)
@@ -178,7 +178,7 @@ void Game_levelState(Game *game_p){
 			undoArray.push_back(game_p->entities);
 		}
 
-		//check if player collides with level door
+		//check if player collides with level doors
 		for(int i = 0; i < game_p->entities.size(); i++){
 
 			Entity *entity1_p = &game_p->entities[i];
@@ -193,6 +193,9 @@ void Game_levelState(Game *game_p){
 					&& entity2_p->type == ENTITY_TYPE_LEVEL_DOOR
 					&& checkEqualsVec3f(entity1_p->pos, entity2_p->pos, 0.001)
 					&& !(strcmp(entity2_p->levelName, "") == 0)){
+
+						game_p->playerLevelHubPos = entity1_p->pos;
+						game_p->playerLevelHubPos.z -= 1.0;
 
 						game_p->mustInitGameState = true;
 						Game_loadLevelByName(game_p, entity2_p->levelName);
@@ -240,6 +243,19 @@ void Game_levelState(Game *game_p){
 			&& numberOfGoals > 0){
 				game_p->mustInitGameState = true;
 				Game_loadLevelByName(game_p, "levelhub");
+				
+				//set player pos
+				for(int i = 0; i < game_p->entities.size(); i++){
+
+					Entity *entity1_p = &game_p->entities[i];
+
+					if(entity1_p->type == ENTITY_TYPE_PLAYER){
+						entity1_p->pos = game_p->playerLevelHubPos;
+						break;
+					}
+
+				}
+
 			}
 		}
 
@@ -250,6 +266,7 @@ void Game_levelState(Game *game_p){
 
 			if(fabs(entity_p->pos.x) > levelWidth / 2
 			|| fabs(entity_p->pos.y) > levelHeight / 2
+			|| entity_p->pos.y < -2.0
 			|| fabs(entity_p->pos.z) > levelWidth / 2){
 
 				game_p->entities.erase(game_p->entities.begin() + i);
@@ -299,6 +316,7 @@ void Game_levelState(Game *game_p){
 					&& getMagVec3f(getSubVec3f(entity1_p->pos, entity2_p->pos)) <= 1.001){
 						entity2_p->type = ENTITY_TYPE_PLAYER;
 						entity2_p->color = PLAYER_COLOR;
+						entity2_p->playerID = entity1_p->playerID;
 						//VERY SHADY AND WEIRD SWITCH. PROBABLY GONNA CAUSE BUGS
 						entity1_p = entity2_p;
 						j = -1;
@@ -326,6 +344,12 @@ void Game_levelState(Game *game_p){
 		
 		}
 
+		//create velocities for different players
+		Vec3f playerVelocities[game_p->numberOfPlayers];
+		for(int i = 0; i < game_p->numberOfPlayers; i++){
+			playerVelocities[i] = playerVelocity;
+		}
+
 		//check if players can move
 		for(int c = 0; c < 3; c++){
 
@@ -346,7 +370,7 @@ void Game_levelState(Game *game_p){
 					while(ID != -1){
 						
 						if(checkEntity_p->type == ENTITY_TYPE_OBSTACLE){
-							playerVelocity[c] = 0.0;
+							playerVelocities[entity_p->playerID][c] = 0.0;
 							break;
 						}
 
@@ -369,7 +393,7 @@ void Game_levelState(Game *game_p){
 			Entity *entity_p = &game_p->entities[i];
 
 			if(entity_p->type == ENTITY_TYPE_PLAYER){
-				entity_p->velocity = playerVelocity;
+				entity_p->velocity = playerVelocities[entity_p->playerID];
 			}
 
 		}
@@ -434,7 +458,11 @@ void Game_levelState(Game *game_p){
 
 				Entity *entity_p = &game_p->entities[i];
 
-				if(!checkEqualsVec3f(entity_p->velocity, getVec3f(0.0, 0.0, 0.0), 0.001)){
+				if((!checkEqualsFloat(entity_p->velocity.x, 0.0, 0.001)
+				|| !checkEqualsFloat(entity_p->velocity.z, 0.0, 0.001))
+				&& (entity_p->type == ENTITY_TYPE_PLAYER
+				|| entity_p->type == ENTITY_TYPE_ROCK
+				|| entity_p->type == ENTITY_TYPE_STICKY_ROCK)){
 					
 					Vec3f checkPos = entity_p->pos;
 					checkPos.y += 1.0;
@@ -463,7 +491,7 @@ void Game_levelState(Game *game_p){
 			}
 		//}
 
-		//check if players and rocks collide with obstacles
+		//check if players and rocks collide with obstacles or stationary entity
 		for(int c = 0; c < 3; c++){
 			for(int i = 0; i < game_p->entities.size(); i++){
 				
@@ -485,7 +513,8 @@ void Game_levelState(Game *game_p){
 
 					while(ID != -1){
 						
-						if(checkEntity_p->type == ENTITY_TYPE_OBSTACLE){
+						if(checkEntity_p->type == ENTITY_TYPE_OBSTACLE
+						|| fabs(checkEntity_p->velocity[c]) < 0.001){
 							stopped = true;
 							break;
 						}

@@ -64,14 +64,18 @@ void Engine_start(){
 		//game.currentGameState = GAME_STATE_LEVEL;
 		game.mustInitGameState = true;
 
-		game.cameraPos = getVec3f(0.0, 6.0, -6.0);
+		game.cameraPos = STANDARD_CAMERA_POS;
 		game.lastCameraPos = game.cameraPos;
-		game.cameraRotation = getVec2f(M_PI / 2.0, -M_PI / 4.0);
+		game.cameraRotation = STANDARD_CAMERA_ROTATION;
 		game.cameraDirection = getVec3f(0.0, 0.0, 1.0);
 
 		VertexMesh_initFromFile_mesh(&game.cubeMesh,  "assets/models/untitled.mesh");
 
 		game.hoveredEntityID = -1;
+
+		game.playerLevelHubPos = getVec3f(0.0, 0.0, 0.0);
+
+		game.numberOfPlayers = 0;
 
 	}
 	

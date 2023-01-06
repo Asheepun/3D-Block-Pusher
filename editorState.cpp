@@ -75,8 +75,10 @@ void Game_editorState(Game *game_p){
 		}
 
 		if(Engine_keys[ENGINE_KEY_B].downed){
-			game_p->cameraPos = getVec3f(0.0, 6.0, -6.0);
-			game_p->cameraRotation = getVec2f(M_PI / 2.0, -M_PI / 4.0);
+			//game_p->cameraPos = getVec3f(0.0, 6.0, -6.0);
+			//game_p->cameraRotation = getVec2f(M_PI / 2.0, -M_PI / 4.0);
+			game_p->cameraPos = STANDARD_CAMERA_POS;
+			game_p->cameraRotation = STANDARD_CAMERA_ROTATION;
 		}
 	}
 
@@ -173,6 +175,11 @@ void Game_editorState(Game *game_p){
 					}
 
 					pos.y += 100;
+
+					if(pos.y > HEIGHT - 200){
+						pos.x += 300;
+						pos.y = 140;
+					}
 
 				}
 			
