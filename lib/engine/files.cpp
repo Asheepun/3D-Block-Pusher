@@ -21,9 +21,14 @@ char *getFileData_mustFree(const char *path, long int *fileSizeOut){
 
 	for(int i = 0; i < fileSize; i++){
 		data[i] = fgetc(fileHandle);
+		//printf("char!\n");
+		//printf("%c\n", data[i]);
+		//printf("%i\n", data[i]);
 	}
 
 	fclose(fileHandle);
+
+	//data[fileSize] = *"\0";
 
 	*fileSizeOut = fileSize;
 
@@ -80,8 +85,6 @@ void writeDataToFile(const char *path, char *data_p, long int fileSize){
 	for(int i = 0; i < fileSize; i++){
 		fputc(data_p[i], fileHandle);
 	}
-
-	fputc(EOF, fileHandle);
 	
 	fclose(fileHandle);
 

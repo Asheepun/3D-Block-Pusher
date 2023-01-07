@@ -5,6 +5,7 @@
 #include "engine/renderer2d.h"
 #include "engine/igui.h"
 #include "engine/strings.h"
+#include "engine/files.h"
 
 #include "game.h"
 
@@ -85,6 +86,25 @@ void Engine_start(){
 		Model_initFromFile_mesh(&model, "assets/models/untitled.mesh");
 
 		String_set(model.name, "cube", STRING_SIZE);
+
+		game.models.push_back(model);
+	}
+	{
+		Model model;
+
+		Model_initFromFile_mesh(&model, "assets/models/cable.mesh");
+
+		String_set(model.name, "cable", STRING_SIZE);
+
+		game.models.push_back(model);
+	}
+	
+	{
+		Model model;
+
+		Model_initFromFile_mesh(&model, "assets/models/teapot.mesh");
+
+		String_set(model.name, "teapot", STRING_SIZE);
 
 		game.models.push_back(model);
 	}
@@ -378,8 +398,8 @@ void Engine_draw(){
 				Model *model_p;
 
 				for(int k = 0; k < game.models.size(); k++){
-					if(strcmp(entity_p->modelName, game.models[j].name) == 0){
-						model_p = &game.models[j];
+					if(strcmp(entity_p->modelName, game.models[k].name) == 0){
+						model_p = &game.models[k];
 					}
 				}
 
@@ -461,5 +481,11 @@ void Engine_draw(){
 }
 
 void Engine_finnish(){
+
+	char text[STRING_SIZE];
+	String_set(text, game.levelNameTextInputData.text, STRING_SIZE);
+	String_append(text, "\n");
+
+	writeDataToFile("lastOpenedLevelName.txt", text, strlen(text));
 
 }

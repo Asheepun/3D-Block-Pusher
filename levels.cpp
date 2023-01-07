@@ -13,7 +13,7 @@
 
 void Game_writeCurrentLevelStateToFile(Game *game_p, const char *path){
 
-	int dataSize = game_p->entities.size() * 5 * SMALL_STRING_SIZE;
+	int dataSize = game_p->entities.size() * 20 * SMALL_STRING_SIZE;
 	char *data = (char *)malloc(dataSize);
 	memset(data, 0, dataSize);
 
@@ -35,6 +35,14 @@ void Game_writeCurrentLevelStateToFile(Game *game_p, const char *path){
 		String_append_float(data, entity_p->pos.z);
 		String_append(data, "\n");
 
+		String_append(data, "-rotation\n");
+		String_append_float(data, entity_p->rotation.x);
+		String_append(data, " ");
+		String_append_float(data, entity_p->rotation.y);
+		String_append(data, " ");
+		String_append_float(data, entity_p->rotation.z);
+		String_append(data, "\n");
+
 		String_append(data, "-color\n");
 		String_append_float(data, entity_p->color.x);
 		String_append(data, " ");
@@ -43,6 +51,10 @@ void Game_writeCurrentLevelStateToFile(Game *game_p, const char *path){
 		String_append_float(data, entity_p->color.z);
 		String_append(data, " ");
 		String_append_float(data, entity_p->color.w);
+		String_append(data, "\n");
+
+		String_append(data, "-modelName\n");
+		String_append(data, entity_p->modelName);
 		String_append(data, "\n");
 
 		if(!(strcmp(entity_p->levelName, "") == 0)){
@@ -69,8 +81,11 @@ void Game_loadLevelFile(Game *game_p, const char *path){
 
 	enum EntityType type;
 	Vec3f pos;
+	Vec3f rotation = getVec3f(0.0, 0.0, 0.0);
 	Vec4f color;
+	char modelName[STRING_SIZE];
 	char levelName[SMALL_STRING_SIZE];
+	String_set(modelName, "cube", SMALL_STRING_SIZE);
 	String_set(levelName, "", SMALL_STRING_SIZE);
 
 	char *ptr = NULL;
@@ -90,6 +105,15 @@ void Game_loadLevelFile(Game *game_p, const char *path){
 			}
 		}
 
+		if(strcmp(fileLines[i], "-rotation") == 0){
+			ptr = fileLines[i + 1];
+
+			for(int i = 0; i < 3; i++){
+				rotation[i] = strtof(ptr, &ptr);
+				ptr += 1;
+			}
+		}
+
 		if(strcmp(fileLines[i], "-color") == 0){
 			ptr = fileLines[i + 1];
 
@@ -97,6 +121,10 @@ void Game_loadLevelFile(Game *game_p, const char *path){
 				color[i] = strtof(ptr, &ptr);
 				ptr += 1;
 			}
+		}
+
+		if(strcmp(fileLines[i], "-modelName") == 0){
+			String_set(modelName, fileLines[i + 1], STRING_SIZE);
 		}
 
 		if(strcmp(fileLines[i], "-levelName") == 0){
@@ -107,18 +135,14 @@ void Game_loadLevelFile(Game *game_p, const char *path){
 
 			Entity entity;
 
-			Entity_init(&entity, pos, getVec3f(0.0, 0.0, 0.0), 0.5, "cube", "cube-borders", color, type);
+			Entity_init(&entity, pos, rotation, 0.5, modelName, "cube-borders", color, type);
 
 			String_set(entity.levelName, levelName, SMALL_STRING_SIZE);
-
-			if(type == ENTITY_TYPE_PLAYER){
-				entity.playerID = game_p->numberOfPlayers;		
-				game_p->numberOfPlayers++;
-			}
 
 			game_p->entities.push_back(entity);
 
 			//reset collecting values
+			String_set(modelName, "", SMALL_STRING_SIZE);
 			String_set(levelName, "", SMALL_STRING_SIZE);
 
 		}
@@ -137,5 +161,7 @@ void Game_loadLevelByName(Game *game_p, const char *name){
 	String_append(path, ".level");
 
 	Game_loadLevelFile(game_p, path);
+
+	String_set(game_p->currentLevel, name, SMALL_STRING_SIZE);
 
 }

@@ -120,4 +120,14 @@ void Game_addLevelDoor(Game *game_p, Vec3f pos, const char *levelName){
 
 }
 
+void Game_addLevelCable(Game *game_p, Vec3f pos){
+
+	Entity entity;
+
+	Entity_init(&entity, pos, getVec3f(0.0, 0.0, 0.0), 0.5, "cable", "blank", PLAYER_COLOR, ENTITY_TYPE_LEVEL_CABLE);
+
+	game_p->entities.push_back(entity);
+
+}
+
 

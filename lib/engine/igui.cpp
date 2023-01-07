@@ -269,13 +269,13 @@ void IGUI_TextInputData_init(IGUI_TextInputData *textInputData_p, const char *st
 
 	String_set(textInputData_p->text, "", STRING_SIZE);
 
-	if(startText != NULL){
-		String_set(textInputData_p->text, startText, startTextLength);
-	
-	}
-
 	textInputData_p->cursorPosition = 0;
 	textInputData_p->focused = false;
+
+	if(startText != NULL){
+		String_set(textInputData_p->text, startText, startTextLength);
+		textInputData_p->cursorPosition = startTextLength - 1;
+	}
 
 }
 

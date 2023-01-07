@@ -97,6 +97,7 @@ typedef struct Engine_Pointer{
 	bool down;
 	bool downed;
 	bool upped;
+	int scroll;
 }Engine_Pointer;
 
 /*

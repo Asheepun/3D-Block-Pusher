@@ -6,7 +6,9 @@
 #include "stdlib.h"
 #include "string.h"
 #include "math.h"
+
 #include <vector>
+#include <chrono>
 
 //#include "glad/glad.h"
 
@@ -42,6 +44,9 @@
 //#include "glad/glad_wgl.h"
 
 #endif
+
+//bool ENGINE_PRINT_FRAME_TIME = true;
+bool ENGINE_PRINT_FRAME_TIME = false;
 
 #ifdef __linux__
 Display *dpy;
@@ -247,11 +252,13 @@ void initPointer(){
 	Engine_pointer.down = false;
 	Engine_pointer.downed = false;
 	Engine_pointer.upped = false;
+	Engine_pointer.scroll = 0;
 }
 
 void resetPointer(){
 	Engine_pointer.downed = false;
 	Engine_pointer.upped = false;
+	Engine_pointer.scroll = 0;
 }
 
 //ENGINE ENTRY POINT
@@ -362,7 +369,8 @@ int main(){
 
 	while(!programShouldQuit){
 
-		startTicks = clock();
+		//startTicks = clock();
+		auto frameStartTime = std::chrono::high_resolution_clock::now();
 
 		//handle events
 		while(XPending(dpy) > 0){
@@ -445,6 +453,13 @@ int main(){
 					Engine_pointer.lastUppedPos = Engine_pointer.pos;
 				}
 
+				if(buttonEvent_p->button == 4){
+					Engine_pointer.scroll++;
+				}
+				if(buttonEvent_p->button == 5){
+					Engine_pointer.scroll--;
+				}
+
 			}
 
 			if(xev.type == MotionNotify){
@@ -476,8 +491,14 @@ int main(){
 		//update
 
 		//while(accumilatedTime > frameTime){
+		
+		auto startTime = std::chrono::high_resolution_clock::now();
 
 		Engine_update(1);
+
+		auto stopTime = std::chrono::high_resolution_clock::now();
+
+		long int updateTime = (long int)(std::chrono::duration_cast<std::chrono::microseconds>(stopTime - startTime).count());
 
 			//accumilatedTime -= frameTime;
 
@@ -488,7 +509,13 @@ int main(){
 
 		//draw
 
+		startTime = std::chrono::high_resolution_clock::now();
+
 		Engine_draw();
+
+		stopTime = std::chrono::high_resolution_clock::now();
+
+		long int drawTime = (long int)(std::chrono::duration_cast<std::chrono::microseconds>(stopTime - startTime).count());
 
 		//glDrawPixels(screenWidth, screenHeight, GL_RGB, GL_UNSIGNED_BYTE, screenPixels);
 
@@ -496,15 +523,17 @@ int main(){
 
 		Engine_elapsedFrames++;
 
-		endTicks = clock();
+		//endTicks = clock();
+		auto frameStopTime = std::chrono::high_resolution_clock::now();
 
-		deltaTime = (endTicks - startTicks) / (CLOCKS_PER_SEC / 1000000);
+		//deltaTime = (endTicks - startTicks) / (CLOCKS_PER_SEC / 1000000);
+		long int totalFrameTime = (long int)(std::chrono::duration_cast<std::chrono::microseconds>(frameStopTime - frameStartTime).count());
 
 		//printf("\nframeTime: %i\n", deltaTime);
 
 		//printf("%f\n", (float)deltaTime / 1000);
 
-		int lag = frameTime - deltaTime;
+		int lag = frameTime - totalFrameTime;
 
 		//printf("lag: %i\n", lag);
 
@@ -513,6 +542,18 @@ int main(){
 		}
 
 		usleep(lag);
+
+		if(ENGINE_PRINT_FRAME_TIME){
+
+			printf("\n\nENGINE TIMINGS\n");
+
+			printf("\nEngine_update() time: %f ms\n", (float)updateTime / 1000.0);
+
+			printf("Engine_draw() time: %f ms\n\n", (float)drawTime / 1000.0);
+
+			printf("total frame time: %f ms\n\n", (float)totalFrameTime / 1000.0);
+
+		}
 
 		//accumilatedTime += deltaTime;
 

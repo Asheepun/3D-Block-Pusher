@@ -27,6 +27,7 @@ enum EntityType currentEntityType;
 enum EditingMode currentEditingMode;
 enum InterfaceMode currentInterfaceMode;
 
+int openLevelScroll = 0;
 bool openingLevel = false;
 bool firstInit = false;
 
@@ -45,7 +46,16 @@ void Game_initEditorState(Game *game_p){
 
 	if(!firstInit){
 
-		IGUI_TextInputData_init(&game_p->levelNameTextInputData, "", 0);
+		long int fileSize;
+		char *lastOpenedLevelName = getFileData_mustFree("lastOpenedLevelName.txt", &fileSize);
+		lastOpenedLevelName[strlen(lastOpenedLevelName) - 1] = *"\0";
+
+		IGUI_TextInputData_init(&game_p->levelNameTextInputData, lastOpenedLevelName, strlen(lastOpenedLevelName));
+		//IGUI_TextInputData_init(&game_p->levelNameTextInputData, "", 0);
+
+		free(lastOpenedLevelName);
+
+		Game_loadLevelByName(game_p, game_p->levelNameTextInputData.text);
 
 		currentEntityType = ENTITY_TYPE_OBSTACLE;
 		currentEditingMode = EDITING_MODE_PLACE;
@@ -64,6 +74,7 @@ void Game_editorState(Game *game_p){
 		if(Engine_keys[ENGINE_KEY_G].downed){
 			game_p->currentGameState = GAME_STATE_LEVEL;
 			game_p->mustInitGameState = true;
+			return;
 		}
 
 		if(Engine_keys[ENGINE_KEY_C].downed){
@@ -125,11 +136,21 @@ void Game_editorState(Game *game_p){
 		if(currentEditingMode == EDITING_MODE_EDIT
 		&& editingEntity){
 
-			IGUI_textInput(getVec2f(400, 20), &game_p->levelDoorNameTextInputData);
-
 			Entity *editingEntity_p = Game_getEntityByID(game_p, editingEntityID);
 
-			String_set(editingEntity_p->levelName, game_p->levelDoorNameTextInputData.text, SMALL_STRING_SIZE);
+			if(editingEntity_p->type == ENTITY_TYPE_LEVEL_DOOR){
+				IGUI_textInput(getVec2f(400, 20), &game_p->levelDoorNameTextInputData);
+
+				String_set(editingEntity_p->levelName, game_p->levelDoorNameTextInputData.text, SMALL_STRING_SIZE);
+			}
+			if(editingEntity_p->type == ENTITY_TYPE_LEVEL_CABLE){
+
+				if(IGUI_textButton_click("Rotate", getVec2f(400, 20), 100, false)){
+					editingEntity_p->rotation.y += M_PI / 2;
+					madeEdit = true;
+				}
+
+			}
 			
 		}
 
@@ -137,48 +158,55 @@ void Game_editorState(Game *game_p){
 
 		if(openingLevel){
 
+			openLevelScroll += Engine_pointer.scroll;
+
 			char dirPath[STRING_SIZE];
 			String_set(dirPath, "levels/", STRING_SIZE);
 
 			DIR *dataDir = opendir(dirPath);
 			struct dirent* dirEntry;
 
-			pos = getVec2f(WIDTH - 850, 140);
+			Vec2f listPos = getVec2f(WIDTH - 850, 140);
+			Vec2f scrollPos = getVec2f(0, openLevelScroll * 10 + 1);
 
 			while((dirEntry = readdir(dataDir)) != NULL){
 
 				if(strcmp(dirEntry->d_name, ".") != 0
 				&& strcmp(dirEntry->d_name, "..") != 0){
 
-					char fileName[STRING_SIZE];
-					String_set(fileName, dirEntry->d_name, STRING_SIZE);
+					if(scrollPos.y > 0 && scrollPos.y < 800){
 
-					char path[STRING_SIZE];
-					String_set(path, dirPath, STRING_SIZE);
-					String_append(path, fileName);
+						char fileName[STRING_SIZE];
+						String_set(fileName, dirEntry->d_name, STRING_SIZE);
+
+						char path[STRING_SIZE];
+						String_set(path, dirPath, STRING_SIZE);
+						String_append(path, fileName);
+						
+						char levelName[STRING_SIZE];
+						String_set(levelName, fileName, STRING_SIZE);
+						memset(strrchr(levelName, *"."), *"\0", 1);
+
+						if(IGUI_textButton_click(levelName, getAddVec2f(listPos, scrollPos), 80, false)){
+
+							String_set(game_p->levelNameTextInputData.text, levelName, STRING_SIZE);
+
+							Game_loadLevelByName(game_p, game_p->levelNameTextInputData.text);
+
+							editingEntity = false;
+							editingEntityID = -1;
+
+							madeEdit = true;
+
+						}
 					
-					char levelName[STRING_SIZE];
-					String_set(levelName, fileName, STRING_SIZE);
-					memset(strrchr(levelName, *"."), *"\0", 1);
-
-					if(IGUI_textButton_click(levelName, pos, 80, false)){
-
-						String_set(game_p->levelNameTextInputData.text, levelName, STRING_SIZE);
-
-						Game_loadLevelByName(game_p, game_p->levelNameTextInputData.text);
-
-						editingEntity = false;
-						editingEntityID = -1;
-
-						madeEdit = true;
-
 					}
 
-					pos.y += 100;
-
-					if(pos.y > HEIGHT - 200){
-						pos.x += 300;
-						pos.y = 140;
+					if(scrollPos.x < 1.0){
+						scrollPos.x += 300.0;
+					}else if(scrollPos.x > 299.0){
+						scrollPos.x = 0.0;
+						scrollPos.y += 100.0;
 					}
 
 				}
@@ -196,6 +224,7 @@ void Game_editorState(Game *game_p){
 		if(IGUI_textButton_click("Open", pos, 100, false)){
 
 			openingLevel = true;
+			openLevelScroll = 0;
 
 		}
 
@@ -341,6 +370,9 @@ void Game_editorState(Game *game_p){
 				if(currentEntityType == ENTITY_TYPE_LEVEL_DOOR){
 					Game_addLevelDoor(game_p, placePos, "");
 				}
+				if(currentEntityType == ENTITY_TYPE_LEVEL_CABLE){
+					Game_addLevelCable(game_p, placePos);
+				}
 
 				madeEdit = true;
 			}
@@ -362,6 +394,13 @@ void Game_editorState(Game *game_p){
 					editingEntityID = game_p->hoveredEntityID;
 
 					IGUI_TextInputData_init(&game_p->levelDoorNameTextInputData, hoveredEntity_p->levelName, SMALL_STRING_SIZE);
+
+					currentInterfaceMode = INTERFACE_MODE_MENU;
+				}
+
+				if(hoveredEntity_p->type == ENTITY_TYPE_LEVEL_CABLE){
+					editingEntity = true;
+					editingEntityID = game_p->hoveredEntityID;
 
 					currentInterfaceMode = INTERFACE_MODE_MENU;
 				}

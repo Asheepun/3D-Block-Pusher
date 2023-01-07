@@ -22,6 +22,7 @@ enum EntityType{
 	ENTITY_TYPE_GOAL,
 	ENTITY_TYPE_PLAYER,
 	ENTITY_TYPE_LEVEL_DOOR,
+	ENTITY_TYPE_LEVEL_CABLE,
 	NUMBER_OF_ENTITY_TYPES,
 };
 
@@ -67,6 +68,8 @@ typedef struct Game{
 	IGUI_TextInputData levelNameTextInputData;
 	IGUI_TextInputData levelDoorNameTextInputData;
 
+	char currentLevel[SMALL_STRING_SIZE];
+
 }Game;
 
 //GLOBAL VARIABLES
@@ -96,6 +99,7 @@ static const char *ENTITY_TYPE_NAMES[] = {
 	"Goal",
 	"Player",
 	"Level Door",
+	"Level Cable",
 };
 
 //FILE: world.cpp
@@ -110,6 +114,7 @@ void Game_addRock(Game *, Vec3f);
 void Game_addStickyRock(Game *, Vec3f);
 void Game_addGoal(Game *, Vec3f);
 void Game_addLevelDoor(Game *, Vec3f, const char *);
+void Game_addLevelCable(Game *, Vec3f);
 
 //FILE: levelState.cpp
 

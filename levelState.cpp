@@ -20,7 +20,7 @@ bool moving = false;
 float moveTime = 0.0;
 int timeNotMoving = 0;
 
-int levelWidth = 30;
+int levelWidth = 50;
 int levelHeight = 10;
 
 int undoKeyHoldTime = 0;
@@ -57,6 +57,16 @@ Vec3f moveFunc(Vec3f startPos, Vec3f endPos, float t){
 
 void Game_initLevelState(Game *game_p){
 
+	//set player ids
+	game_p->numberOfPlayers = 0;
+	for(int i = 0; i < game_p->entities.size(); i++){
+		if(game_p->entities[i].type == ENTITY_TYPE_PLAYER){
+			game_p->entities[i].playerID = game_p->numberOfPlayers;
+			game_p->numberOfPlayers++;
+		}
+	}
+
+	//reset entity grid
 	entityIDGrid.clear();
 	undoArray.clear();
 
@@ -76,9 +86,12 @@ void Game_initLevelState(Game *game_p){
 
 void Game_levelState(Game *game_p){
 
+	printf("---\n");
+
 	if(Engine_keys[ENGINE_KEY_G].downed){
 		game_p->currentGameState = GAME_STATE_EDITOR;
 		game_p->mustInitGameState = true;
+		return;
 	}
 
 	game_p->hoveredEntityID = -1;
@@ -241,6 +254,7 @@ void Game_levelState(Game *game_p){
 
 			if(numberOfCoveredGoals == numberOfGoals
 			&& numberOfGoals > 0){
+
 				game_p->mustInitGameState = true;
 				Game_loadLevelByName(game_p, "levelhub");
 				
@@ -255,6 +269,8 @@ void Game_levelState(Game *game_p){
 					}
 
 				}
+
+				return;
 
 			}
 		}
@@ -602,6 +618,25 @@ void Game_levelState(Game *game_p){
 	}
 
 	timeNotMoving++;
+
+	//make camera follow player if in level hub
+	if(strcmp(game_p->currentLevel, "levelhub") == 0){
+
+		//find player position
+		for(int i = 0; i < game_p->entities.size(); i++){
+
+			Entity *entity_p = &game_p->entities[i];
+
+			if(entity_p->type == ENTITY_TYPE_PLAYER){
+				Vec3f_add(&game_p->cameraPos, entity_p->pos);
+				printf("player pos:\n");
+				Vec3f_log(entity_p->pos);
+				break;
+			}
+
+		}
+
+	}
 
 }
 
