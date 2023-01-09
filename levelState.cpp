@@ -57,6 +57,8 @@ Vec3f moveFunc(Vec3f startPos, Vec3f endPos, float t){
 
 void Game_initLevelState(Game *game_p){
 
+	undoArray.clear();
+
 	//set player ids
 	game_p->numberOfPlayers = 0;
 	for(int i = 0; i < game_p->entities.size(); i++){
@@ -68,7 +70,6 @@ void Game_initLevelState(Game *game_p){
 
 	//reset entity grid
 	entityIDGrid.clear();
-	undoArray.clear();
 
 	for(int x = 0; x < levelWidth; x++){
 		for(int y = 0; y < levelHeight; y++){
@@ -366,6 +367,107 @@ void Game_levelState(Game *game_p){
 			playerVelocities[i] = playerVelocity;
 		}
 
+		//check if entities collide with risers
+		for(int i = 0; i < game_p->entities.size(); i++){
+			
+			Entity *entity1_p = &game_p->entities[i];
+
+			if(entity1_p->type == ENTITY_TYPE_PLAYER
+			|| entity1_p->type == ENTITY_TYPE_ROCK
+			|| entity1_p->type == ENTITY_TYPE_STICKY_ROCK){
+
+				for(int j = 0; j < game_p->entities.size(); j++){
+					
+					Entity *entity2_p = &game_p->entities[j];
+
+					if(entity2_p->type == ENTITY_TYPE_RISER
+					&& checkEqualsVec3f(entity1_p->pos, entity2_p->pos, 0.001)){
+
+						bool blocked = false;
+
+						Vec3f checkPos = entity1_p->pos;
+						checkPos.y += 1.0;
+
+						size_t ID = entityIDGrid[getEntityIDGridIndexFromPos(checkPos)];
+						Entity *checkEntity_p = Game_getEntityByID(game_p, ID);
+
+						while(ID != -1){
+							
+							if(checkEntity_p->type == ENTITY_TYPE_OBSTACLE){
+								blocked = true;
+								break;
+							}
+
+							checkPos.y += 1.0;
+							ID = entityIDGrid[getEntityIDGridIndexFromPos(checkPos)];
+							checkEntity_p = Game_getEntityByID(game_p, ID);
+
+						}
+
+						if(!blocked){
+							entity1_p->velocity.y = 1.0;
+
+							if(entity1_p->type == ENTITY_TYPE_PLAYER){
+								playerVelocities[entity1_p->playerID].y = 1.0;
+							}
+						}
+
+					}
+
+					if(entity2_p->type == ENTITY_TYPE_RISER
+					&& checkEqualsVec3f(getAddVec3f(entity1_p->pos, getVec3f(0.0, -1.0, 0.0)), entity2_p->pos, 0.001)
+					&& entity1_p->velocity.y < 0.0){
+
+						entity1_p->velocity.y = 0.0;
+
+						if(entity1_p->type == ENTITY_TYPE_PLAYER){
+							playerVelocities[entity1_p->playerID].y = 0.0;
+						}
+
+						Vec3f checkPos = entity1_p->pos;
+						checkPos.y += 1.0;
+
+						size_t ID = entityIDGrid[getEntityIDGridIndexFromPos(checkPos)];
+						Entity *checkEntity_p = Game_getEntityByID(game_p, ID);
+
+						while(ID != -1){
+							
+							if(checkEntity_p->type == ENTITY_TYPE_OBSTACLE){
+								break;
+							}
+
+							checkEntity_p->velocity.y = 0.0;
+
+							if(checkEntity_p->type == ENTITY_TYPE_PLAYER){
+								playerVelocities[checkEntity_p->playerID].y = 0.0;
+							}
+
+							checkPos.y += 1.0;
+
+							ID = entityIDGrid[getEntityIDGridIndexFromPos(checkPos)];
+							checkEntity_p = Game_getEntityByID(game_p, ID);
+						
+						}
+
+					}
+
+				}
+
+			}
+
+		}
+
+		//set player velocities again
+		for(int i = 0; i < game_p->entities.size(); i++){
+
+			Entity *entity_p = &game_p->entities[i];
+
+			if(entity_p->type == ENTITY_TYPE_PLAYER){
+				entity_p->velocity = playerVelocities[entity_p->playerID];
+			}
+
+		}
+
 		//check if players can move
 		for(int c = 0; c < 3; c++){
 
@@ -403,7 +505,7 @@ void Game_levelState(Game *game_p){
 
 		}
 
-		//set player velocities second time
+		//set player velocities again
 		for(int i = 0; i < game_p->entities.size(); i++){
 
 			Entity *entity_p = &game_p->entities[i];
@@ -414,98 +516,124 @@ void Game_levelState(Game *game_p){
 
 		}
 
-		//handle player pushing
-		for(int c = 0; c < 3; c++){
-			for(int i = 0; i < game_p->entities.size(); i++){
-				
-				Entity *entity_p = &game_p->entities[i];
+		//iterate pushing and friction handling
+		for(int iterations = 0; iterations < 2; iterations++){
 
-				if(entity_p->type == ENTITY_TYPE_PLAYER
-				&& fabs(entity_p->velocity[c]) > 0.001){
+			//handle pushing
+			for(int c = 0; c < 3; c++){
 
-					Vec3f checkPos = entity_p->pos;
+				for(int i = 0; i < game_p->entities.size(); i++){
+					
+					Entity *entity_p = &game_p->entities[i];
 
-					checkPos[c] += entity_p->velocity[c];
+					if((entity_p->type == ENTITY_TYPE_PLAYER
+					|| entity_p->type == ENTITY_TYPE_ROCK
+					|| entity_p->type == ENTITY_TYPE_STICKY_ROCK)
+					&& fabs(entity_p->velocity[c]) > 0.001){
 
-					size_t ID = entityIDGrid[getEntityIDGridIndexFromPos(checkPos)];
-					Entity *checkEntity_p = Game_getEntityByID(game_p, ID);
-
-					bool stopped = false;
-
-					while(ID != -1){
-						
-						if(checkEntity_p->type == ENTITY_TYPE_OBSTACLE){
-							stopped = true;
-							break;
-						}
-
-						checkEntity_p->velocity[c] = entity_p->velocity[c];
+						Vec3f checkPos = entity_p->pos;
 
 						checkPos[c] += entity_p->velocity[c];
 
-						ID = entityIDGrid[getEntityIDGridIndexFromPos(checkPos)];
-						checkEntity_p = Game_getEntityByID(game_p, ID);
+						size_t ID = entityIDGrid[getEntityIDGridIndexFromPos(checkPos)];
+						Entity *checkEntity_p = Game_getEntityByID(game_p, ID);
 
-					}
+						bool stopped = false;
 
-					if(stopped){
+						while(ID != -1){
+							
+							if(checkEntity_p->type == ENTITY_TYPE_OBSTACLE
+							|| c == 1
+							&& fabs(checkEntity_p->velocity.y - 1.0) < 0.001
+							&& fabs(entity_p->velocity.y + 1.0) < 0.001){//handle pushing against rising entity
+								stopped = true;
+								break;
+							}
 
-						while(!checkEqualsVec3f(checkPos, entity_p->pos, 0.001)){
+							checkEntity_p->velocity[c] = entity_p->velocity[c];
 
-							checkPos[c] -= entity_p->velocity[c];
+							checkPos[c] += entity_p->velocity[c];
 
 							ID = entityIDGrid[getEntityIDGridIndexFromPos(checkPos)];
 							checkEntity_p = Game_getEntityByID(game_p, ID);
+
+						}
+
+						if(stopped){
+
+							while(!checkEqualsVec3f(checkPos, entity_p->pos, 0.001)){
+
+								checkPos[c] -= entity_p->velocity[c];
+
+								ID = entityIDGrid[getEntityIDGridIndexFromPos(checkPos)];
+								checkEntity_p = Game_getEntityByID(game_p, ID);
+								
+								checkEntity_p->velocity[c] = 0.0;
+
+								if(checkEntity_p->type == ENTITY_TYPE_PLAYER){
+									playerVelocities[checkEntity_p->playerID][c] = 0.0;
+								}
 							
-							checkEntity_p->velocity[c] = 0.0;
+							}
 						
 						}
-					
+
 					}
 
 				}
-
 			}
-		}
 
-		//handle friction
-		//for(int c = 0; c < 3; c++){
+			//set player velocities again
 			for(int i = 0; i < game_p->entities.size(); i++){
 
 				Entity *entity_p = &game_p->entities[i];
 
-				if((!checkEqualsFloat(entity_p->velocity.x, 0.0, 0.001)
-				|| !checkEqualsFloat(entity_p->velocity.z, 0.0, 0.001))
-				&& (entity_p->type == ENTITY_TYPE_PLAYER
-				|| entity_p->type == ENTITY_TYPE_ROCK
-				|| entity_p->type == ENTITY_TYPE_STICKY_ROCK)){
-					
-					Vec3f checkPos = entity_p->pos;
-					checkPos.y += 1.0;
-
-					size_t ID = entityIDGrid[getEntityIDGridIndexFromPos(checkPos)];
-					Entity *checkEntity_p = Game_getEntityByID(game_p, ID);
-
-					while(ID != -1){
-
-						if(checkEntity_p->type == ENTITY_TYPE_OBSTACLE){
-							break;
-						}
-
-						checkEntity_p->velocity.x = entity_p->velocity.x;
-						checkEntity_p->velocity.z = entity_p->velocity.z;
-
-						checkPos.y += 1.0;
-
-						ID = entityIDGrid[getEntityIDGridIndexFromPos(checkPos)];
-						checkEntity_p = Game_getEntityByID(game_p, ID);
-					
-					}
-
+				if(entity_p->type == ENTITY_TYPE_PLAYER){
+					entity_p->velocity = playerVelocities[entity_p->playerID];
 				}
 
 			}
-		//}
+
+			//handle friction
+			//for(int c = 0; c < 3; c++){
+				for(int i = 0; i < game_p->entities.size(); i++){
+
+					Entity *entity_p = &game_p->entities[i];
+
+					if((!checkEqualsFloat(entity_p->velocity.x, 0.0, 0.001)
+					|| !checkEqualsFloat(entity_p->velocity.z, 0.0, 0.001))
+					&& (entity_p->type == ENTITY_TYPE_PLAYER
+					|| entity_p->type == ENTITY_TYPE_ROCK
+					|| entity_p->type == ENTITY_TYPE_STICKY_ROCK)){
+						
+						Vec3f checkPos = entity_p->pos;
+						checkPos.y += 1.0;
+
+						size_t ID = entityIDGrid[getEntityIDGridIndexFromPos(checkPos)];
+						Entity *checkEntity_p = Game_getEntityByID(game_p, ID);
+
+						while(ID != -1){
+
+							if(checkEntity_p->type == ENTITY_TYPE_OBSTACLE){
+								break;
+							}
+
+							checkEntity_p->velocity.x = entity_p->velocity.x;
+							checkEntity_p->velocity.z = entity_p->velocity.z;
+
+							checkPos.y += 1.0;
+
+							ID = entityIDGrid[getEntityIDGridIndexFromPos(checkPos)];
+							checkEntity_p = Game_getEntityByID(game_p, ID);
+						
+						}
+
+					}
+
+				}
+			//}
+		
+		}
 
 		//check if players and rocks collide with obstacles or stationary entity
 		for(int c = 0; c < 3; c++){
@@ -552,6 +680,10 @@ void Game_levelState(Game *game_p){
 							checkEntity_p = Game_getEntityByID(game_p, ID);
 							
 							checkEntity_p->velocity[c] = 0.0;
+
+							if(checkEntity_p->type == ENTITY_TYPE_PLAYER){
+								playerVelocities[checkEntity_p->playerID][c] = 0.0;
+							}
 						
 						}
 
@@ -560,6 +692,17 @@ void Game_levelState(Game *game_p){
 				}
 
 			}
+		}
+
+		//set player velocities again
+		for(int i = 0; i < game_p->entities.size(); i++){
+
+			Entity *entity_p = &game_p->entities[i];
+
+			if(entity_p->type == ENTITY_TYPE_PLAYER){
+				entity_p->velocity = playerVelocities[entity_p->playerID];
+			}
+
 		}
 
 		bool entityMoved = false;

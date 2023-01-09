@@ -373,6 +373,9 @@ void Game_editorState(Game *game_p){
 				if(currentEntityType == ENTITY_TYPE_LEVEL_CABLE){
 					Game_addLevelCable(game_p, placePos);
 				}
+				if(currentEntityType == ENTITY_TYPE_RISER){
+					Game_addRiser(game_p, placePos);
+				}
 
 				madeEdit = true;
 			}

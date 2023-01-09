@@ -23,6 +23,7 @@ enum EntityType{
 	ENTITY_TYPE_PLAYER,
 	ENTITY_TYPE_LEVEL_DOOR,
 	ENTITY_TYPE_LEVEL_CABLE,
+	ENTITY_TYPE_RISER,
 	NUMBER_OF_ENTITY_TYPES,
 };
 
@@ -86,6 +87,7 @@ static Vec4f ROCK_COLOR = { 0.7, 0.7, 0.7, 1.0 };
 static Vec4f STICKY_ROCK_COLOR = { 0.1, 1.0, 0.2, 1.0 };
 static Vec4f GOAL_COLOR = { 0.1, 0.1, 0.9, 0.5 };
 static Vec4f LEVEL_DOOR_COLOR = { 1.0, 1.0, 1.0, 0.5 };
+static Vec4f RISER_COLOR = { 1.0, 0.6, 0.0, 0.5 };
 
 //static Vec3f STANDARD_CAMERA_POS = { 0.0, 6.0, -6.0 };
 //static Vec2f STANDARD_CAMERA_ROTATION = { M_PI / 2.0, -M_PI / 4.0 };
@@ -100,6 +102,7 @@ static const char *ENTITY_TYPE_NAMES[] = {
 	"Player",
 	"Level Door",
 	"Level Cable",
+	"Riser",
 };
 
 //FILE: world.cpp
@@ -115,6 +118,7 @@ void Game_addStickyRock(Game *, Vec3f);
 void Game_addGoal(Game *, Vec3f);
 void Game_addLevelDoor(Game *, Vec3f, const char *);
 void Game_addLevelCable(Game *, Vec3f);
+void Game_addRiser(Game *, Vec3f);
 
 //FILE: levelState.cpp
 
