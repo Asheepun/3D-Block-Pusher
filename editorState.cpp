@@ -160,61 +160,105 @@ void Game_editorState(Game *game_p){
 
 			openLevelScroll += Engine_pointer.scroll;
 
+			//lookup level names
 			char dirPath[STRING_SIZE];
 			String_set(dirPath, "levels/", STRING_SIZE);
 
 			DIR *dataDir = opendir(dirPath);
 			struct dirent* dirEntry;
 
-			Vec2f listPos = getVec2f(WIDTH - 850, 140);
-			Vec2f scrollPos = getVec2f(0, openLevelScroll * 10 + 1);
+			std::vector<char *> levelNames;
 
 			while((dirEntry = readdir(dataDir)) != NULL){
 
 				if(strcmp(dirEntry->d_name, ".") != 0
 				&& strcmp(dirEntry->d_name, "..") != 0){
 
-					if(scrollPos.y > 0 && scrollPos.y < 800){
+					char fileName[STRING_SIZE];
+					String_set(fileName, dirEntry->d_name, STRING_SIZE);
 
-						char fileName[STRING_SIZE];
-						String_set(fileName, dirEntry->d_name, STRING_SIZE);
-
-						char path[STRING_SIZE];
-						String_set(path, dirPath, STRING_SIZE);
-						String_append(path, fileName);
-						
-						char levelName[STRING_SIZE];
-						String_set(levelName, fileName, STRING_SIZE);
-						memset(strrchr(levelName, *"."), *"\0", 1);
-
-						if(IGUI_textButton_click(levelName, getAddVec2f(listPos, scrollPos), 80, false)){
-
-							String_set(game_p->levelNameTextInputData.text, levelName, STRING_SIZE);
-
-							Game_loadLevelByName(game_p, game_p->levelNameTextInputData.text);
-
-							editingEntity = false;
-							editingEntityID = -1;
-
-							madeEdit = true;
-
-						}
+					char path[STRING_SIZE];
+					String_set(path, dirPath, STRING_SIZE);
+					String_append(path, fileName);
 					
-					}
+					char levelNameTmp[STRING_SIZE];
+					String_set(levelNameTmp, fileName, STRING_SIZE);
+					memset(strrchr(levelNameTmp, *"."), *"\0", 1);
 
-					if(scrollPos.x < 1.0){
-						scrollPos.x += 300.0;
-					}else if(scrollPos.x > 299.0){
-						scrollPos.x = 0.0;
-						scrollPos.y += 100.0;
-					}
+					char *levelName = (char *)malloc(SMALL_STRING_SIZE);
+					String_set(levelName, levelNameTmp, SMALL_STRING_SIZE);
 
+					levelNames.push_back(levelName);
+
+				}
+			
+			}
+
+			//sort level names
+			std::vector <char *>sortedLevelNames;
+			char *lastLowestName = NULL;
+
+			for(int i = 0; i < levelNames.size(); i++){
+
+				char *currentLowestName = NULL;
+
+				for(int j = 0; j < levelNames.size(); j++){
+
+					if((lastLowestName == NULL || strcmp(lastLowestName, levelNames[j]) < 0)
+					&& (currentLowestName == NULL || strcmp(currentLowestName, levelNames[j]) > 0)){
+						currentLowestName = levelNames[j];
+					}
+					
+				}
+
+				lastLowestName = currentLowestName;
+				sortedLevelNames.push_back(currentLowestName);
+
+			}
+
+			//create level name buttons
+
+			Vec2f listPos = getVec2f(WIDTH - 850, 140);
+			Vec2f scrollPos = getVec2f(0, openLevelScroll * 10 + 1);
+
+			for(int i = 0; i < sortedLevelNames.size(); i++){
+
+				if(scrollPos.y > 0 && scrollPos.y < 800){
+
+					char *levelName = sortedLevelNames[i];
+
+					if(IGUI_textButton_click(levelName, getAddVec2f(listPos, scrollPos), 80, false)){
+
+						String_set(game_p->levelNameTextInputData.text, levelName, STRING_SIZE);
+
+						Game_loadLevelByName(game_p, game_p->levelNameTextInputData.text);
+
+						editingEntity = false;
+						editingEntityID = -1;
+
+						madeEdit = true;
+
+					}
+				
+				}
+
+				scrollPos.y += 100.0;
+
+				if(i > (int)(sortedLevelNames.size() / 2)
+				&& scrollPos.x < 1.0){
+					scrollPos.x += 300.0;
+					scrollPos.y = openLevelScroll * 10 + 1;
 				}
 			
 			}
 
 			if(Engine_pointer.upped){
 				openingLevel = false;
+			}
+
+			//free level names
+			for(int i = 0; i < levelNames.size(); i++){
+				free(levelNames[i]);
 			}
 
 		}

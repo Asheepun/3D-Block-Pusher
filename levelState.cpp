@@ -20,7 +20,7 @@ bool moving = false;
 float moveTime = 0.0;
 int timeNotMoving = 0;
 
-int levelWidth = 50;
+int levelWidth = 100;
 int levelHeight = 10;
 
 int undoKeyHoldTime = 0;
@@ -34,7 +34,7 @@ std::vector<enum Actions>actionQueue;
 std::vector<std::vector<Entity>>undoArray;
 
 int getEntityIDGridIndexFromPos(Vec3f pos){
-	return (int)((pos.x + levelWidth / 2) * levelWidth * levelHeight + (pos.y + levelHeight / 2) * levelHeight + (pos.z + levelWidth / 2));
+	return (int)((pos.x + levelWidth / 2) * levelWidth * levelHeight + (pos.y + levelHeight / 2) * levelWidth + (pos.z + levelWidth / 2));
 }
 
 Vec3f moveFunc(Vec3f startPos, Vec3f endPos, float t){
@@ -416,7 +416,7 @@ void Game_levelState(Game *game_p){
 
 					if(entity2_p->type == ENTITY_TYPE_RISER
 					&& checkEqualsVec3f(getAddVec3f(entity1_p->pos, getVec3f(0.0, -1.0, 0.0)), entity2_p->pos, 0.001)
-					&& entity1_p->velocity.y < 0.0){
+					&& entity1_p->velocity.y < 0.0 && !(entity1_p->type == ENTITY_TYPE_PLAYER && playerVelocities[entity1_p->playerID].y > 0.0)){
 
 						entity1_p->velocity.y = 0.0;
 
@@ -772,8 +772,6 @@ void Game_levelState(Game *game_p){
 
 			if(entity_p->type == ENTITY_TYPE_PLAYER){
 				Vec3f_add(&game_p->cameraPos, entity_p->pos);
-				printf("player pos:\n");
-				Vec3f_log(entity_p->pos);
 				break;
 			}
 
