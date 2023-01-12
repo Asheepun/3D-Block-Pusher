@@ -35,7 +35,8 @@ typedef struct Entity{
 	Vec3f startPos;
 	Vec3f endPos;
 	Vec3f rotation;
-	Vec3f velocity;
+	int velocityIndex;
+	//Vec3f velocity;
 	float scale;
 	char modelName[SMALL_STRING_SIZE];
 	char textureName[SMALL_STRING_SIZE];

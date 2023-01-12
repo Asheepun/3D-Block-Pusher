@@ -27,7 +27,8 @@ void Entity_init(Entity *entity_p, Vec3f pos, Vec3f rotation, float scale, const
 	String_set(entity_p->textureName, textureName, SMALL_STRING_SIZE);
 
 	String_set(entity_p->levelName, "", SMALL_STRING_SIZE);
-	entity_p->velocity = getVec3f(0.0, 0.0, 0.0);
+	//entity_p->velocity = getVec3f(0.0, 0.0, 0.0);
+	entity_p->velocityIndex = -1;
 
 }
 
