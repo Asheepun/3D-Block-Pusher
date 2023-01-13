@@ -35,7 +35,7 @@ typedef struct Entity{
 	Vec3f startPos;
 	Vec3f endPos;
 	Vec3f rotation;
-	int velocityIndex;
+	long int velocityIndex;
 	//Vec3f velocity;
 	float scale;
 	char modelName[SMALL_STRING_SIZE];
@@ -70,7 +70,7 @@ typedef struct Game{
 	IGUI_TextInputData levelNameTextInputData;
 	IGUI_TextInputData levelDoorNameTextInputData;
 
-	char currentLevel[SMALL_STRING_SIZE];
+	char currentLevel[STRING_SIZE];
 
 }Game;
 

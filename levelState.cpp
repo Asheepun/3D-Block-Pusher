@@ -33,6 +33,8 @@ std::vector<enum Actions>actionQueue;
 
 std::vector<std::vector<Entity>>undoArray;
 
+std::vector<Vec3f> velocities;
+
 int getEntityIDGridIndexFromPos(Vec3f pos){
 	return (int)((pos.x + levelWidth / 2) * levelWidth * levelHeight + (pos.y + levelHeight / 2) * levelWidth + (pos.z + levelWidth / 2));
 }
@@ -90,11 +92,11 @@ void Game_levelState(Game *game_p){
 	printf("---\n");
 
 	if(Engine_keys[ENGINE_KEY_G].downed){
+		printf("pressed g\n");
 		game_p->currentGameState = GAME_STATE_EDITOR;
 		game_p->mustInitGameState = true;
 		return;
 	}
-
 	game_p->hoveredEntityID = -1;
 
 	//game_p->cameraPos = getVec3f(0.0, 6.0, -6.0);
@@ -353,7 +355,8 @@ void Game_levelState(Game *game_p){
 			}
 		}
 
-		std::vector<Vec3f> velocities;
+		//clear velocities
+		velocities.clear();
 
 		//create velocities for players
 		for(int i = 0; i < game_p->numberOfPlayers; i++){
@@ -588,8 +591,14 @@ void Game_levelState(Game *game_p){
 
 			Entity *entity_p = &game_p->entities[i];
 
+			Vec3f velocity = getVec3f(0.0, 0.0, 0.0);
+
+			if(entity_p->velocityIndex != -1){
+				velocity = velocities[entity_p->velocityIndex];
+			}
+
 			entity_p->startPos = entity_p->pos;
-			entity_p->endPos = getAddVec3f(entity_p->pos, velocities[entity_p->velocityIndex]);
+			entity_p->endPos = getAddVec3f(entity_p->pos, velocity);
 
 			if(!checkEqualsVec3f(velocities[entity_p->velocityIndex], getVec3f(0.0, 0.0, 0.0), 0.001)){
 				entityMoved = true;

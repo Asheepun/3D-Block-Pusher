@@ -36,7 +36,7 @@ size_t editingEntityID;
 
 void Game_initEditorState(Game *game_p){
 
-	Game_loadLevelFile(game_p, "working.level");
+	Game_loadLevelByName(game_p, "working");
 
 	currentInterfaceMode = INTERFACE_MODE_MENU;
 
@@ -460,7 +460,7 @@ void Game_editorState(Game *game_p){
 
 	if(madeEdit){
 
-		Game_writeCurrentLevelStateToFile(game_p, "working.level");
+		Game_writeCurrentLevelStateToFile(game_p, "levels/working.level");
 
 	}
 

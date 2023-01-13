@@ -13,7 +13,7 @@
 
 void Game_writeCurrentLevelStateToFile(Game *game_p, const char *path){
 
-	int dataSize = game_p->entities.size() * 20 * SMALL_STRING_SIZE;
+	int dataSize = game_p->entities.size() * 50 * SMALL_STRING_SIZE;
 	char *data = (char *)malloc(dataSize);
 	memset(data, 0, dataSize);
 
@@ -162,6 +162,8 @@ void Game_loadLevelByName(Game *game_p, const char *name){
 
 	Game_loadLevelFile(game_p, path);
 
-	String_set(game_p->currentLevel, name, SMALL_STRING_SIZE);
+	if(!strcmp(name, "working") == 0){
+		String_set(game_p->currentLevel, name, SMALL_STRING_SIZE);
+	}
 
 }
