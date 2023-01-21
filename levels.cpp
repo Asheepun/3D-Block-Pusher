@@ -85,7 +85,7 @@ void Game_loadLevelFile(Game *game_p, const char *path){
 	Vec4f color;
 	char modelName[STRING_SIZE];
 	char levelName[SMALL_STRING_SIZE];
-	String_set(modelName, "cube", SMALL_STRING_SIZE);
+	String_set(modelName, "", SMALL_STRING_SIZE);
 	String_set(levelName, "", SMALL_STRING_SIZE);
 
 	char *ptr = NULL;
@@ -134,6 +134,10 @@ void Game_loadLevelFile(Game *game_p, const char *path){
 		if(strcmp(fileLines[i], ":end-entity") == 0){
 
 			Entity entity;
+
+			if(strcmp(modelName, "") == 0){
+				String_set(modelName, "cube", SMALL_STRING_SIZE);
+			}
 
 			Entity_init(&entity, pos, rotation, 0.5, modelName, "cube-borders", color, type);
 

@@ -57,6 +57,8 @@ void Game_initEditorState(Game *game_p){
 
 		Game_loadLevelByName(game_p, game_p->levelNameTextInputData.text);
 
+		Game_writeCurrentLevelStateToFile(game_p, "levels/working.level");
+
 		currentEntityType = ENTITY_TYPE_OBSTACLE;
 		currentEditingMode = EDITING_MODE_PLACE;
 
@@ -217,7 +219,6 @@ void Game_editorState(Game *game_p){
 			}
 
 			//create level name buttons
-
 			Vec2f listPos = getVec2f(WIDTH - 850, 140);
 			Vec2f scrollPos = getVec2f(0, openLevelScroll * 10 + 1);
 
@@ -337,7 +338,6 @@ void Game_editorState(Game *game_p){
 		}
 
 		//check if entity is pointed at
-
 		Vec3f closestIntersectionPoint;
 		float closestIntersectionDistance = 100000.0;
 		Vec3f hitNormal;
@@ -427,6 +427,8 @@ void Game_editorState(Game *game_p){
 			if(currentEditingMode == EDITING_MODE_REMOVE){
 
 				Game_removeEntityByID(game_p, hitEntity_p->ID);
+
+				game_p->hoveredEntityID = -1;
 
 				madeEdit = true;
 

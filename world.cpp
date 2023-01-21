@@ -1,6 +1,7 @@
 #include "engine/engine.h"
 #include "engine/geometry.h"
 #include "engine/strings.h"
+#include "engine/engine.h"
 
 #include "game.h"
 
@@ -51,7 +52,9 @@ void Game_removeEntityByID(Game *game_p, size_t ID){
 	for(int i = 0; i < game_p->entities.size(); i++){
 		
 		if(game_p->entities[i].ID == ID){
-			game_p->entities.erase(game_p->entities.begin() + i);
+			printf("i: %i\n", i);
+			printf("ID: %i\n", ID);
+			game_p->entities.erase(game_p->entities.begin() + i, game_p->entities.begin() + i + 1);
 			break;
 		}
 
