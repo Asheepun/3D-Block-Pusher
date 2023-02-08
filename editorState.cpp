@@ -420,6 +420,9 @@ void Game_editorState(Game *game_p){
 				if(currentEntityType == ENTITY_TYPE_RISER){
 					Game_addRiser(game_p, placePos);
 				}
+				if(currentEntityType == ENTITY_TYPE_CLONER){
+					Game_addCloner(game_p, placePos);
+				}
 
 				madeEdit = true;
 			}

@@ -78,6 +78,11 @@ void Engine_start(){
 
 		game.numberOfPlayers = 0;
 
+		SmallString level1;
+		String_set(level1, "level1", SMALL_STRING_SIZE);
+
+		game.openLevels.push_back(level1);
+
 	}
 	
 	{
@@ -139,6 +144,31 @@ void Engine_start(){
 	{
 		Texture texture;
 		Texture_initFromFile(&texture, "assets/textures/blank.png", "blank");
+		game.textures.push_back(texture);
+	}
+	{
+		Texture texture;
+		Texture_initFromFile(&texture, "assets/textures/player.png", "player");
+		game.textures.push_back(texture);
+	}
+	{
+		Texture texture;
+		Texture_initFromFile(&texture, "assets/textures/player-south.png", "player-south");
+		game.textures.push_back(texture);
+	}
+	{
+		Texture texture;
+		Texture_initFromFile(&texture, "assets/textures/player-west.png", "player-west");
+		game.textures.push_back(texture);
+	}
+	{
+		Texture texture;
+		Texture_initFromFile(&texture, "assets/textures/player-north.png", "player-north");
+		game.textures.push_back(texture);
+	}
+	{
+		Texture texture;
+		Texture_initFromFile(&texture, "assets/textures/player-east.png", "player-east");
 		game.textures.push_back(texture);
 	}
 

@@ -4,6 +4,10 @@
 #include "stdlib.h"
 #include "string.h"
 
+void String_log(SmallString string){
+	printf("%s\n", (char *)string);
+}
+
 void String_set(char *destString, const char *sourceString, int size){
 
 	memset(destString, 0, size);

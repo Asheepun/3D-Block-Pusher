@@ -57,6 +57,10 @@ void Game_writeCurrentLevelStateToFile(Game *game_p, const char *path){
 		String_append(data, entity_p->modelName);
 		String_append(data, "\n");
 
+		String_append(data, "-textureName\n");
+		String_append(data, entity_p->textureName);
+		String_append(data, "\n");
+
 		if(!(strcmp(entity_p->levelName, "") == 0)){
 			String_append(data, "-levelName\n");
 			String_append(data, entity_p->levelName);
@@ -85,8 +89,10 @@ void Game_loadLevelFile(Game *game_p, const char *path){
 	Vec4f color;
 	char modelName[STRING_SIZE];
 	char levelName[SMALL_STRING_SIZE];
+	char textureName[SMALL_STRING_SIZE];
 	String_set(modelName, "", SMALL_STRING_SIZE);
 	String_set(levelName, "", SMALL_STRING_SIZE);
+	String_set(textureName, "", SMALL_STRING_SIZE);
 
 	char *ptr = NULL;
 
@@ -131,6 +137,10 @@ void Game_loadLevelFile(Game *game_p, const char *path){
 			String_set(levelName, fileLines[i + 1], SMALL_STRING_SIZE);
 		}
 
+		if(strcmp(fileLines[i], "-textureName") == 0){
+			String_set(textureName, fileLines[i + 1], SMALL_STRING_SIZE);
+		}
+
 		if(strcmp(fileLines[i], ":end-entity") == 0){
 
 			Entity entity;
@@ -138,8 +148,11 @@ void Game_loadLevelFile(Game *game_p, const char *path){
 			if(strcmp(modelName, "") == 0){
 				String_set(modelName, "cube", SMALL_STRING_SIZE);
 			}
+			if(strcmp(textureName, "") == 0){
+				String_set(textureName, "cube-borders", SMALL_STRING_SIZE);
+			}
 
-			Entity_init(&entity, pos, rotation, 0.5, modelName, "cube-borders", color, type);
+			Entity_init(&entity, pos, rotation, 0.5, modelName, textureName, color, type);
 
 			String_set(entity.levelName, levelName, SMALL_STRING_SIZE);
 
@@ -148,6 +161,7 @@ void Game_loadLevelFile(Game *game_p, const char *path){
 			//reset collecting values
 			String_set(modelName, "", SMALL_STRING_SIZE);
 			String_set(levelName, "", SMALL_STRING_SIZE);
+			String_set(textureName, "", SMALL_STRING_SIZE);
 
 		}
 

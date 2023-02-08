@@ -4,6 +4,7 @@
 #include "game.h"
 
 #include <vector>
+#include <algorithm>
 
 #include "math.h"
 #include "stdio.h"
@@ -15,6 +16,8 @@ enum Actions{
 	ACTION_MOVE_LEFT,
 	ACTION_MOVE_RIGHT,
 };
+
+bool UNLOCK_LEVELS = true;
 
 bool moving = false;
 float moveTime = 0.0;
@@ -30,6 +33,7 @@ int UNDO_KEY_REPEAT_DELAY = 5;
 std::vector<size_t> entityIDGrid;
 
 std::vector<enum Actions>actionQueue;
+enum Actions lastAction;
 
 std::vector<std::vector<Entity>>undoArray;
 
@@ -85,6 +89,43 @@ void Game_initLevelState(Game *game_p){
 		}
 	}
 
+	if(strcmp(game_p->currentLevel, "levelhub") == 0){
+
+		//color completed level doors
+		for(int i = 0; i < game_p->entities.size(); i++){
+
+			Entity *entity_p = &game_p->entities[i];
+
+			if(entity_p->type == ENTITY_TYPE_LEVEL_DOOR){
+
+				bool completed = false;
+				bool open = false;
+
+				for(int j = 0; j < game_p->completedLevels.size(); j++){
+					if(strcmp(entity_p->levelName, game_p->completedLevels[j]) == 0){
+						completed = true;
+					}
+				}
+				for(int j = 0; j < game_p->openLevels.size(); j++){
+					if(strcmp(entity_p->levelName, game_p->openLevels[j]) == 0){
+						open = true;
+					}
+				}
+
+				if(completed){
+					entity_p->color = COMPLETED_LEVEL_DOOR_COLOR;
+				}else if(open){
+					entity_p->color = OPEN_LEVEL_DOOR_COLOR;
+				}else{
+					entity_p->color = LEVEL_DOOR_COLOR;
+				}
+			
+			}
+
+		}
+	
+	}
+
 }
 
 void Game_levelState(Game *game_p){
@@ -92,7 +133,6 @@ void Game_levelState(Game *game_p){
 	printf("---\n");
 
 	if(Engine_keys[ENGINE_KEY_G].downed){
-		printf("pressed g\n");
 		game_p->currentGameState = GAME_STATE_EDITOR;
 		game_p->mustInitGameState = true;
 		return;
@@ -185,6 +225,7 @@ void Game_levelState(Game *game_p){
 
 			didAction = true;
 
+			lastAction = actionQueue[0];
 			actionQueue.erase(actionQueue.begin());
 		
 		}
@@ -210,13 +251,29 @@ void Game_levelState(Game *game_p){
 					&& checkEqualsVec3f(entity1_p->pos, entity2_p->pos, 0.001)
 					&& !(strcmp(entity2_p->levelName, "") == 0)){
 
-						game_p->playerLevelHubPos = entity1_p->pos;
-						game_p->playerLevelHubPos.z -= 1.0;
+						//check if level door is open
+						bool unlocked  = false;
+						if(UNLOCK_LEVELS){
+							unlocked = true;
+						}
+						for(int k = 0; k < game_p->openLevels.size(); k++){
+							if(strcmp(game_p->openLevels[k], entity2_p->levelName) == 0){
+								unlocked = true;
+							}
+						}
 
-						game_p->mustInitGameState = true;
-						Game_loadLevelByName(game_p, entity2_p->levelName);
+						if(unlocked){
 
-						return;
+							game_p->playerLevelHubPos = entity1_p->pos;
+							game_p->playerLevelHubPos.z -= 1.0;
+
+							game_p->mustInitGameState = true;
+							Game_loadLevelByName(game_p, entity2_p->levelName);
+
+							return;
+						
+						}
+
 					}
 					
 				}
@@ -255,8 +312,14 @@ void Game_levelState(Game *game_p){
 
 			}
 
+			//handle completing level
 			if(numberOfCoveredGoals == numberOfGoals
 			&& numberOfGoals > 0){
+
+				SmallString completedLevelName;
+				String_set(completedLevelName.value, game_p->currentLevel, SMALL_STRING_SIZE);
+
+				game_p->completedLevels.push_back(completedLevelName);
 
 				game_p->mustInitGameState = true;
 				Game_loadLevelByName(game_p, "levelhub");
@@ -271,6 +334,72 @@ void Game_levelState(Game *game_p){
 						break;
 					}
 
+				}
+
+				//unlock connected level doors
+				for(int i = 0; i < game_p->entities.size(); i++){
+
+					Entity *entity1_p = &game_p->entities[i];
+
+					if(entity1_p->type == ENTITY_TYPE_LEVEL_DOOR
+					&& strcmp(entity1_p->levelName, completedLevelName) == 0){
+
+						for(int j = 0; j < game_p->entities.size(); j++){
+
+							Entity *entity2_p = &game_p->entities[j];
+
+							int lastK = j;
+							int secondLastK = j;
+
+							if(entity2_p->type == ENTITY_TYPE_LEVEL_CABLE
+							&& getMagVec3f(getSubVec3f(entity1_p->pos, entity2_p->pos)) < 1.001){
+								
+								for(int k = 0; k < game_p->entities.size(); k++){
+
+									Entity *entity3_p = &game_p->entities[k];
+
+									if(entity3_p->type == ENTITY_TYPE_LEVEL_CABLE
+									&& getMagVec3f(getSubVec3f(entity2_p->pos, entity3_p->pos)) < 1.001
+									&& k != lastK
+									&& k != secondLastK){
+
+										entity2_p = entity3_p;
+										secondLastK = lastK;
+										lastK = k;
+										k = -1;
+										continue;
+
+									}
+
+									if(entity3_p->type == ENTITY_TYPE_LEVEL_DOOR
+									&& getMagVec3f(getSubVec3f(entity2_p->pos, entity3_p->pos)) < 1.001
+									&& k != i){
+
+										SmallString name;
+										String_set(name, entity3_p->levelName, SMALL_STRING_SIZE);
+										
+										//check if level is not already open
+										bool alreadyOpen = false;
+										for(int l = 0; l < game_p->openLevels.size(); l++){
+											if(strcmp(game_p->openLevels[l], name) == 0){
+												alreadyOpen = true;
+											}
+										}
+
+										if(!alreadyOpen){
+											game_p->openLevels.push_back(name);
+										}
+
+									}
+
+								}
+
+							}
+
+						}
+						
+					}
+					
 				}
 
 				return;
@@ -318,6 +447,78 @@ void Game_levelState(Game *game_p){
 			
 			}
 
+		}
+
+		//handle cloners clonging machines
+		{
+			int numberOfEmptyCloners = 0;
+			int numberOfFilledCloners = 0;
+			Entity *cloneEntity_p = NULL;
+			bool onlyOneCloneType = true;
+
+			//check what is in cloners
+			for(int i = 0; i < game_p->entities.size(); i++){
+				
+				Entity *entity1_p = &game_p->entities[i];
+
+				if(entity1_p->type == ENTITY_TYPE_CLONER){
+
+					int index = getEntityIDGridIndexFromPos(entity1_p->pos);
+					
+					if(entityIDGrid[index] == -1){
+						numberOfEmptyCloners++;
+					}else{
+
+						numberOfFilledCloners++;
+						
+						Entity *entity2_p = Game_getEntityByID(game_p, entityIDGrid[index]);
+						if(cloneEntity_p != NULL && cloneEntity_p->type != entity2_p->type){
+							onlyOneCloneType = false;
+						}
+						cloneEntity_p = entity2_p;
+
+					}
+
+				}
+
+			}
+
+			//clone entities if necessary
+			if(numberOfEmptyCloners > 0
+			&& numberOfFilledCloners > 0
+			&& onlyOneCloneType){
+
+				for(int i = 0; i < game_p->entities.size(); i++){
+					
+					Entity *entity1_p = &game_p->entities[i];
+
+					if(entity1_p->type == ENTITY_TYPE_CLONER){
+
+						int index = getEntityIDGridIndexFromPos(entity1_p->pos);
+						
+						if(entityIDGrid[index] == -1){
+							
+							Entity entity2;
+							Entity_init(&entity2, entity1_p->pos, cloneEntity_p->rotation, cloneEntity_p->scale, cloneEntity_p->modelName, cloneEntity_p->textureName, cloneEntity_p->color, cloneEntity_p->type);
+
+							if(entity2.type == ENTITY_TYPE_PLAYER){
+								entity2.playerID = game_p->numberOfPlayers;
+								game_p->numberOfPlayers++;
+							}
+
+							game_p->entities.push_back(entity2);
+
+							//place entity into entity ID grid
+							entityIDGrid[index] = entity2.ID;
+
+						}
+
+					}
+				
+				}
+
+			}
+		
 		}
 
 		//check if players are next to sticky rocks
@@ -646,6 +847,17 @@ void Game_levelState(Game *game_p){
 	}
 
 	timeNotMoving++;
+
+	//set player texture
+	for(int i = 0; i < game_p->entities.size(); i++){
+
+		Entity *entity_p = &game_p->entities[i];
+
+		if(entity_p->type == ENTITY_TYPE_PLAYER){
+			String_set(entity_p->textureName, "player-south", SMALL_STRING_SIZE);
+		}
+	
+	}
 
 	//make camera follow player if in level hub
 	if(strcmp(game_p->currentLevel, "levelhub") == 0){
