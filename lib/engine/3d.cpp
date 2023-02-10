@@ -91,6 +91,30 @@ void Texture_init(Texture *texture_p, const char *name, unsigned char *data, int
 
 }
 
+void Texture_initAsDepthMap(Texture *texture_p, int width, int height){
+
+	glGenTextures(1, &texture_p->ID);
+	glBindTexture(GL_TEXTURE_2D, texture_p->ID);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+}
+
+void Texture_initAsColorMap(Texture *texture_p, int width, int height){
+
+	glGenTextures(1, &texture_p->ID);
+	glBindTexture(GL_TEXTURE_2D, texture_p->ID);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+}
+
 void Texture_initFromFile(Texture *texture_p, const char *path, const char *name){
 
 	int width, height, channels;

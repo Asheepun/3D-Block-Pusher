@@ -55,6 +55,8 @@ typedef struct Game{
 
 	VertexMesh cubeMesh;
 
+	bool needToRenderStaticShadows;
+
 	std::vector<Model> models;
 	std::vector<Texture> textures;
 

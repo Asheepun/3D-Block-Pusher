@@ -29,10 +29,15 @@ unsigned int modelShader;
 unsigned int shadowMapShader;
 
 unsigned int shadowMapFBO;
-unsigned int shadowMapDepthTexture;
+unsigned int shadowMapStaticFBO;
+Texture shadowMapDepthTexture;
+Texture shadowMapDepthTextureStatic;
 unsigned int transparentShadowMapFBO;
-unsigned int transparentShadowMapDepthTexture;
-unsigned int transparentShadowMapColorTexture;
+unsigned int transparentShadowMapStaticFBO;
+Texture transparentShadowMapDepthTexture;
+Texture transparentShadowMapColorTexture;
+Texture transparentShadowMapDepthTextureStatic;
+Texture transparentShadowMapColorTextureStatic;
 int SHADOW_MAP_WIDTH = 2000;
 int SHADOW_MAP_HEIGHT = 2000;
 float shadowMapScale = 10.0;
@@ -69,6 +74,7 @@ void Engine_start(){
 		game.lastCameraPos = game.cameraPos;
 		game.cameraRotation = STANDARD_CAMERA_ROTATION;
 		game.cameraDirection = getVec3f(0.0, 0.0, 1.0);
+		game.needToRenderStaticShadows = true;
 
 		VertexMesh_initFromFile_mesh(&game.cubeMesh,  "assets/models/untitled.mesh");
 
@@ -208,44 +214,42 @@ void Engine_start(){
 	}
 
 	//generate shadow map depth texture
-	glGenTextures(1, &shadowMapDepthTexture);
-	glBindTexture(GL_TEXTURE_2D, shadowMapDepthTexture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	Texture_initAsDepthMap(&shadowMapDepthTexture, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
 
 	//generate shadow map frame buffer
 	glGenFramebuffers(1, &shadowMapFBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, shadowMapFBO);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowMapDepthTexture, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowMapDepthTexture.ID, 0);
 	glDrawBuffer(GL_NONE);
 	glReadBuffer(GL_NONE);
 
-	//generate transparent shadow map depth texture
-	glGenTextures(1, &transparentShadowMapDepthTexture);
-	glBindTexture(GL_TEXTURE_2D, transparentShadowMapDepthTexture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glBindFramebuffer(GL_FRAMEBUFFER, transparentShadowMapFBO);
+	//generate static shadow map depth texture
+	Texture_initAsDepthMap(&shadowMapDepthTextureStatic, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
 
-	//generate transparent shadow map color texture
-	glGenTextures(1, &transparentShadowMapColorTexture);
-	glBindTexture(GL_TEXTURE_2D, transparentShadowMapColorTexture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	//generate static shadow map frame buffer
+	glGenFramebuffers(1, &shadowMapStaticFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, shadowMapStaticFBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowMapDepthTextureStatic.ID, 0);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
 
+	Texture_initAsDepthMap(&transparentShadowMapDepthTexture, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+	Texture_initAsColorMap(&transparentShadowMapColorTexture, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+
+	//generate transparent shadow map frame buffer
 	glGenFramebuffers(1, &transparentShadowMapFBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, transparentShadowMapFBO);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, transparentShadowMapDepthTexture, 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, transparentShadowMapColorTexture, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, transparentShadowMapDepthTexture.ID, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, transparentShadowMapColorTexture.ID, 0);
+
+	Texture_initAsDepthMap(&transparentShadowMapDepthTextureStatic, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+	Texture_initAsColorMap(&transparentShadowMapColorTextureStatic, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+
+	//generate transparent shadow map frame buffer
+	glGenFramebuffers(1, &transparentShadowMapStaticFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, transparentShadowMapStaticFBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, transparentShadowMapDepthTextureStatic.ID, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, transparentShadowMapColorTextureStatic.ID, 0);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);  
 
@@ -339,8 +343,34 @@ void Engine_draw(){
 				glViewport(0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
 			}
 
-			glClearColor(1.0, 1.0, 1.0, 1.0);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			if(game.needToRenderStaticShadows){
+
+				if(i == 0){
+					glBindFramebuffer(GL_FRAMEBUFFER, shadowMapStaticFBO);  
+					glViewport(0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+				}
+				if(i == 1){
+					glBindFramebuffer(GL_FRAMEBUFFER, transparentShadowMapStaticFBO);  
+					glViewport(0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+				}
+
+				glClearColor(1.0, 1.0, 1.0, 1.0);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			
+			}else{
+				if(i == 0){
+					glBindFramebuffer(GL_READ_FRAMEBUFFER, shadowMapStaticFBO);
+					glBindFramebuffer(GL_DRAW_FRAMEBUFFER, shadowMapFBO);
+					glBlitFramebuffer(0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, 0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+				}
+				if(i == 1){
+					glBindFramebuffer(GL_READ_FRAMEBUFFER, transparentShadowMapStaticFBO);
+					glBindFramebuffer(GL_DRAW_FRAMEBUFFER, transparentShadowMapFBO);
+					glBlitFramebuffer(0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, 0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+					glBlitFramebuffer(0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, 0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+				}
+			}
+
 		}
 
 		for(int j = 0; j < game.entities.size(); j++){
@@ -355,7 +385,25 @@ void Engine_draw(){
 				continue;
 			}
 
-			Model *model_p;
+			//check if entity is static
+			bool staticEntity = false;
+			if(entity_p->type == ENTITY_TYPE_OBSTACLE
+			|| entity_p->type == ENTITY_TYPE_LEVEL_DOOR
+			|| entity_p->type == ENTITY_TYPE_GOAL
+			|| entity_p->type == ENTITY_TYPE_RISER
+			|| entity_p->type == ENTITY_TYPE_CLONER
+			|| entity_p->type == ENTITY_TYPE_LEVEL_CABLE){
+				staticEntity = true;
+			}
+
+			//skip rendering depending on if it is a static entity and they should be rendered
+			if(!(staticEntity && game.needToRenderStaticShadows)
+			&& !(!staticEntity && !game.needToRenderStaticShadows)){
+				continue;
+			}
+
+			//find entity model
+			Model *model_p = NULL;
 
 			for(int k = 0; k < game.models.size(); k++){
 				if(strcmp(entity_p->modelName, game.models[k].name) == 0){
@@ -363,6 +411,11 @@ void Engine_draw(){
 				}
 			}
 
+			if(model_p == NULL){
+				throw "Error: NULL MODEL";
+			}
+
+			//render entity to shadow map
 			unsigned int currentShaderProgram = shadowMapShader;
 
 			glUseProgram(currentShaderProgram);
@@ -390,6 +443,11 @@ void Engine_draw(){
 			glDrawArrays(GL_TRIANGLES, 0, model_p->numberOfTriangles * 3);
 
 		}
+	}
+
+	//reset static shadow need
+	if(game.needToRenderStaticShadows){
+		game.needToRenderStaticShadows = false;
 	}
 
 	endTicks = clock();
@@ -458,9 +516,9 @@ void Engine_draw(){
 				glBindVertexArray(model_p->VAO);
 
 				GL3D_uniformTexture(currentShaderProgram, "colorTexture", 0, texture_p->ID);
-				GL3D_uniformTexture(currentShaderProgram, "shadowMapDepthTexture", 1, shadowMapDepthTexture);
-				GL3D_uniformTexture(currentShaderProgram, "transparentShadowMapDepthTexture", 2, transparentShadowMapDepthTexture);
-				GL3D_uniformTexture(currentShaderProgram, "transparentShadowMapColorTexture", 3, transparentShadowMapColorTexture);
+				GL3D_uniformTexture(currentShaderProgram, "shadowMapDepthTexture", 1, shadowMapDepthTexture.ID);
+				GL3D_uniformTexture(currentShaderProgram, "transparentShadowMapDepthTexture", 2, transparentShadowMapDepthTexture.ID);
+				GL3D_uniformTexture(currentShaderProgram, "transparentShadowMapColorTexture", 3, transparentShadowMapColorTexture.ID);
 
 				Mat4f modelRotationMat4f = getIdentityMat4f();
 

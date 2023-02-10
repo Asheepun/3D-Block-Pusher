@@ -169,6 +169,8 @@ void Game_loadLevelFile(Game *game_p, const char *path){
 
 	free(fileLines);
 
+	game_p->needToRenderStaticShadows = true;
+
 }
 
 void Game_loadLevelByName(Game *game_p, const char *name){

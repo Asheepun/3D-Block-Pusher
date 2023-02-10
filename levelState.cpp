@@ -126,6 +126,8 @@ void Game_initLevelState(Game *game_p){
 	
 	}
 
+	game_p->needToRenderStaticShadows = true;
+
 }
 
 void Game_levelState(Game *game_p){

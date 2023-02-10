@@ -36,6 +36,10 @@ void Texture_init(Texture *, const char *, unsigned char *, int, int);
 
 void Texture_initFromFile(Texture *, const char *, const char *);
 
+void Texture_initAsDepthMap(Texture *, int, int);
+
+void Texture_initAsColorMap(Texture *, int, int);
+
 void GL3D_uniformMat4f(unsigned int, const char *, Mat4f);
 
 void GL3D_uniformVec3f(unsigned int, const char *, Vec3f);
