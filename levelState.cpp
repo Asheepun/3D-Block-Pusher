@@ -801,7 +801,7 @@ void Game_levelState(Game *game_p){
 			entity_p->startPos = entity_p->pos;
 			entity_p->endPos = getAddVec3f(entity_p->pos, velocity);
 
-			if(!checkEqualsVec3f(velocities[entity_p->velocityIndex], getVec3f(0.0, 0.0, 0.0), 0.001)){
+			if(!checkEqualsVec3f(velocity, getVec3f(0.0, 0.0, 0.0), 0.001)){
 				entityMoved = true;
 			}
 		

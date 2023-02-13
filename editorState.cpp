@@ -48,7 +48,12 @@ void Game_initEditorState(Game *game_p){
 
 		long int fileSize;
 		char *lastOpenedLevelName = getFileData_mustFree("lastOpenedLevelName.txt", &fileSize);
-		lastOpenedLevelName[strlen(lastOpenedLevelName) - 1] = *"\0";
+		for(int i = 0; i < fileSize; i++){
+			if(lastOpenedLevelName[i] == *"}"){
+				lastOpenedLevelName[i] = *"\0";
+			}
+		}
+		//lastOpenedLevelName[strlen(lastOpenedLevelName) - 1] = *"\0";
 
 		IGUI_TextInputData_init(&game_p->levelNameTextInputData, lastOpenedLevelName, strlen(lastOpenedLevelName));
 		//IGUI_TextInputData_init(&game_p->levelNameTextInputData, "", 0);
@@ -68,8 +73,6 @@ void Game_initEditorState(Game *game_p){
 }
 
 void Game_editorState(Game *game_p){
-
-	printf("---\n");
 
 	if(!game_p->levelNameTextInputData.focused
 	&& !game_p->levelDoorNameTextInputData.focused){
