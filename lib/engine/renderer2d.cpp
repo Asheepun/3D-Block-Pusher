@@ -10,7 +10,9 @@
 #include "stb/stb_image.h"
 
 //#include "glad/glad.h"
+#ifdef _WIN32
 #include "glad/wgl.h"
+#endif
 #include "glad/gl.h"
 
 #include "stdio.h"

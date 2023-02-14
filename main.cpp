@@ -572,7 +572,7 @@ void Engine_finnish(){
 
 	char text[STRING_SIZE];
 	String_set(text, game.levelNameTextInputData.text, STRING_SIZE);
-	String_append(text, "\n");
+	String_append(text, "}");
 
 	writeDataToFile("lastOpenedLevelName.txt", text, strlen(text));
 

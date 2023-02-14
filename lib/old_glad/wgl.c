@@ -1,6 +1,4 @@
-/**
- * SPDX-License-Identifier: (WTFPL OR CC0-1.0) AND Apache-2.0
- */
+#ifdef _WIN32
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,15 +24,11 @@ extern "C" {
 int GLAD_WGL_VERSION_1_0 = 0;
 int GLAD_WGL_ARB_extensions_string = 0;
 int GLAD_WGL_EXT_extensions_string = 0;
-int GLAD_WGL_EXT_swap_control = 0;
-int GLAD_WGL_EXT_swap_control_tear = 0;
 
 
 
 PFNWGLGETEXTENSIONSSTRINGARBPROC glad_wglGetExtensionsStringARB = NULL;
 PFNWGLGETEXTENSIONSSTRINGEXTPROC glad_wglGetExtensionsStringEXT = NULL;
-PFNWGLGETSWAPINTERVALEXTPROC glad_wglGetSwapIntervalEXT = NULL;
-PFNWGLSWAPINTERVALEXTPROC glad_wglSwapIntervalEXT = NULL;
 
 
 static void glad_wgl_load_WGL_ARB_extensions_string(GLADuserptrloadfunc load, void *userptr) {
@@ -44,11 +38,6 @@ static void glad_wgl_load_WGL_ARB_extensions_string(GLADuserptrloadfunc load, vo
 static void glad_wgl_load_WGL_EXT_extensions_string(GLADuserptrloadfunc load, void *userptr) {
     if(!GLAD_WGL_EXT_extensions_string) return;
     glad_wglGetExtensionsStringEXT = (PFNWGLGETEXTENSIONSSTRINGEXTPROC) load(userptr, "wglGetExtensionsStringEXT");
-}
-static void glad_wgl_load_WGL_EXT_swap_control(GLADuserptrloadfunc load, void *userptr) {
-    if(!GLAD_WGL_EXT_swap_control) return;
-    glad_wglGetSwapIntervalEXT = (PFNWGLGETSWAPINTERVALEXTPROC) load(userptr, "wglGetSwapIntervalEXT");
-    glad_wglSwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC) load(userptr, "wglSwapIntervalEXT");
 }
 
 
@@ -93,8 +82,6 @@ static GLADapiproc glad_wgl_get_proc_from_userptr(void *userptr, const char* nam
 static int glad_wgl_find_extensions_wgl(HDC hdc) {
     GLAD_WGL_ARB_extensions_string = glad_wgl_has_extension(hdc, "WGL_ARB_extensions_string");
     GLAD_WGL_EXT_extensions_string = glad_wgl_has_extension(hdc, "WGL_EXT_extensions_string");
-    GLAD_WGL_EXT_swap_control = glad_wgl_has_extension(hdc, "WGL_EXT_swap_control");
-    GLAD_WGL_EXT_swap_control_tear = glad_wgl_has_extension(hdc, "WGL_EXT_swap_control_tear");
     return 1;
 }
 
@@ -115,8 +102,6 @@ int gladLoadWGLUserPtr(HDC hdc, GLADuserptrloadfunc load, void *userptr) {
     if (!glad_wgl_find_extensions_wgl(hdc)) return 0;
     glad_wgl_load_WGL_ARB_extensions_string(load, userptr);
     glad_wgl_load_WGL_EXT_extensions_string(load, userptr);
-    glad_wgl_load_WGL_EXT_swap_control(load, userptr);
-
 
     return version;
 }
@@ -126,20 +111,8 @@ int gladLoadWGL(HDC hdc, GLADloadfunc load) {
 }
  
 
-#ifdef GLAD_WGL
-
-static GLADapiproc glad_wgl_get_proc(void *vuserptr, const char* name) {
-    GLAD_UNUSED(vuserptr);
-    return GLAD_GNUC_EXTENSION (GLADapiproc) wglGetProcAddress(name);
-}
-
-int gladLoaderLoadWGL(HDC hdc) {
-    return gladLoadWGLUserPtr(hdc, glad_wgl_get_proc, NULL);
-}
-
-
-#endif /* GLAD_WGL */
 
 #ifdef __cplusplus
 }
+#endif
 #endif

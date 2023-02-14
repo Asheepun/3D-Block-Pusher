@@ -17,10 +17,12 @@ unsigned int getCompiledShader(const char *shaderSourcePath, GLenum type){
 	long int fileSize;
 	char *shaderSource = getFileData_mustFree(shaderSourcePath, &fileSize);
 
+	GLint intFileSize = fileSize;
+
 	unsigned int shader;
 	shader = glCreateShader(type);
 
-	glShaderSource(shader, 1, (const GLchar * const *)&shaderSource, NULL);
+	glShaderSource(shader, 1, (const GLchar * const *)&shaderSource, &intFileSize);
 	glCompileShader(shader);
 
 	int success;

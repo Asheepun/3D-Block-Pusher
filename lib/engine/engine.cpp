@@ -644,7 +644,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	gladLoaderLoadWGL(hdc);
 	gladLoaderLoadGL();
-	//gladLoadGL();
+	//gladLoadWGL(hdc);
 
 	wglSwapIntervalEXT(1);
 
@@ -685,6 +685,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		
+		}
+
+		//do fps magic
+		if(Engine_fpsModeOn){
+
+			RECT windowRect;
+			RECT clientRect;
+			GetWindowRect(hwnd, &windowRect);
+			GetClientRect(hwnd, &clientRect);
+
+			int smallMargin = (windowRect.right - windowRect.left - clientRect.right) / 2;
+			int largeMargin = windowRect.bottom - windowRect.top - clientRect.bottom - smallMargin;
+
+			SetCursorPos(windowRect.left + smallMargin + Engine_clientWidth / 2, windowRect.top + largeMargin + Engine_clientHeight / 2);
+
 		}
 
 		//update
@@ -763,6 +778,44 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
 		}
 
 		
+	}
+
+	if(uMsg == WM_LBUTTONDOWN){
+		Engine_pointer.down = true;
+		Engine_pointer.downed = true;
+		Engine_pointer.lastDownedPos = Engine_pointer.pos;
+	}
+
+	if(uMsg == WM_LBUTTONUP){
+		Engine_pointer.down = false;
+		Engine_pointer.upped = true;
+		Engine_pointer.lastUppedPos = Engine_pointer.pos;
+	}
+
+	if(uMsg == WM_MOUSEMOVE){
+
+		int x = LOWORD(lParam);
+		int y = HIWORD(lParam);
+
+		Engine_pointer.pos.x = x;
+		Engine_pointer.pos.y = y;
+
+		Engine_pointer.movement.x = x - Engine_clientWidth / 2;
+		Engine_pointer.movement.y = y - Engine_clientHeight / 2;
+
+	}
+
+	if(uMsg == WM_MOUSEWHEEL){
+		
+		if(HIWORD(wParam) < 0){
+			Engine_pointer.scroll--;
+			printf("scroll--\n");
+		}
+		if(HIWORD(wParam) > 0){
+			Engine_pointer.scroll++;
+			printf("scroll++n");
+		}
+
 	}
 
 	if(uMsg == WM_SIZE){
@@ -899,89 +952,3 @@ void Engine_toggleFullscreen(){
 #endif
 
 }
-
-/*
-//DRAWING FUNCTIONS
-unsigned int Engine_getScreenPixelIndex(int x, int y){
-	return x + (screenHeight - y - 1) * screenWidth;
-}
-
-void Engine_fillRect(int x, int y, int w, int h, enum Engine_ColorEnum color){
-
-	if(x > screenWidth
-	|| y > screenHeight
-	|| x + w < 0
-	|| y + h < 0){
-		return;
-	}
-
-	if(x + w > screenWidth){
-		w = screenWidth - x;
-	}
-	if(y + h > screenHeight){
-		h = screenHeight - y;
-	}
-	if(x < 0){
-		w = w + x;
-		x = 0;
-	}
-	if(y < 0){
-		h = h + y;
-		y = 0;
-	}
-
-	for(int i = 0; i < h; i++){
-
-		unsigned int index = Engine_getScreenPixelIndex(x, y + i);
-		Engine_Pixel *pixel_p = &screenPixels[index];
-
-		memcpy(pixel_p, colorBuffers[color], w * sizeof(Engine_Pixel));
-
-	}
-}
-
-void Engine_drawLine(Vec2f p1, Vec2f p2, Engine_Pixel color){
-	
-	Vec2f diff = p1;
-	Vec2f_sub(&diff, p2);
-	
-	int length = getMagVec2f(diff);
-
-	Vec2f_normalize(&diff);
-		
-	Vec2f pos = p2;
-
-	for(int i = 0; i < length; i++){
-
-		unsigned int index = Engine_getScreenPixelIndex(pos.x, pos.y);
-		Engine_Pixel *pixel_p = &screenPixels[index];
-
-		*pixel_p = color;
-		
-		pos.x += diff.x;
-		pos.y += diff.y;
-
-	}
-
-
-}
-
-void Engine_drawTriangle(Vec2f *verts, Engine_Pixel color){
-
-	for(int i = 0; i < 3; i++){
-
-		Vec2f p1 = verts[(i + 0) % 3];
-		Vec2f p2 = verts[(i + 1) % 3];
-
-		Engine_drawLine(p1, p2, color);
-	
-	}
-
-}
-
-void Engine_fillTriangle(Vec2f *verts, Engine_Pixel color){
-
-	
-
-}
-*/

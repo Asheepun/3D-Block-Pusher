@@ -1,6 +1,3 @@
-/**
- * SPDX-License-Identifier: (WTFPL OR CC0-1.0) AND Apache-2.0
- */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,8 +25,6 @@ int GLAD_GLX_VERSION_1_1 = 0;
 int GLAD_GLX_VERSION_1_2 = 0;
 int GLAD_GLX_VERSION_1_3 = 0;
 int GLAD_GLX_VERSION_1_4 = 0;
-int GLAD_GLX_EXT_swap_control = 0;
-int GLAD_GLX_EXT_swap_control_tear = 0;
 
 
 
@@ -69,7 +64,6 @@ PFNGLXQUERYSERVERSTRINGPROC glad_glXQueryServerString = NULL;
 PFNGLXQUERYVERSIONPROC glad_glXQueryVersion = NULL;
 PFNGLXSELECTEVENTPROC glad_glXSelectEvent = NULL;
 PFNGLXSWAPBUFFERSPROC glad_glXSwapBuffers = NULL;
-PFNGLXSWAPINTERVALEXTPROC glad_glXSwapIntervalEXT = NULL;
 PFNGLXUSEXFONTPROC glad_glXUseXFont = NULL;
 PFNGLXWAITGLPROC glad_glXWaitGL = NULL;
 PFNGLXWAITXPROC glad_glXWaitX = NULL;
@@ -129,18 +123,14 @@ static void glad_glx_load_GLX_VERSION_1_4( GLADuserptrloadfunc load, void* userp
     if(!GLAD_GLX_VERSION_1_4) return;
     glad_glXGetProcAddress = (PFNGLXGETPROCADDRESSPROC) load(userptr, "glXGetProcAddress");
 }
-static void glad_glx_load_GLX_EXT_swap_control( GLADuserptrloadfunc load, void* userptr) {
-    if(!GLAD_GLX_EXT_swap_control) return;
-    glad_glXSwapIntervalEXT = (PFNGLXSWAPINTERVALEXTPROC) load(userptr, "glXSwapIntervalEXT");
-}
 
 
 
 static int glad_glx_has_extension(Display *display, int screen, const char *ext) {
 #ifndef GLX_VERSION_1_1
-    GLAD_UNUSED(display);
-    GLAD_UNUSED(screen);
-    GLAD_UNUSED(ext);
+    (void) display;
+    (void) screen;
+    (void) ext;
 #else
     const char *terminator;
     const char *loc;
@@ -178,8 +168,7 @@ static GLADapiproc glad_glx_get_proc_from_userptr(void *userptr, const char* nam
 }
 
 static int glad_glx_find_extensions(Display *display, int screen) {
-    GLAD_GLX_EXT_swap_control = glad_glx_has_extension(display, screen, "GLX_EXT_swap_control");
-    GLAD_GLX_EXT_swap_control_tear = glad_glx_has_extension(display, screen, "GLX_EXT_swap_control_tear");
+    (void) glad_glx_has_extension;
     return 1;
 }
 
@@ -187,7 +176,7 @@ static int glad_glx_find_core_glx(Display **display, int *screen) {
     int major = 0, minor = 0;
     if(*display == NULL) {
 #ifdef GLAD_GLX_NO_X11
-        GLAD_UNUSED(screen);
+        (void) screen;
         return 0;
 #else
         *display = XOpenDisplay(0);
@@ -219,8 +208,6 @@ int gladLoadGLXUserPtr(Display *display, int screen, GLADuserptrloadfunc load, v
     glad_glx_load_GLX_VERSION_1_4(load, userptr);
 
     if (!glad_glx_find_extensions(display, screen)) return 0;
-    glad_glx_load_GLX_EXT_swap_control(load, userptr);
-
 
     return version;
 }
@@ -231,130 +218,6 @@ int gladLoadGLX(Display *display, int screen, GLADloadfunc load) {
 
  
 
-#ifdef GLAD_GLX
-
-#ifndef GLAD_LOADER_LIBRARY_C_
-#define GLAD_LOADER_LIBRARY_C_
-
-#include <stddef.h>
-#include <stdlib.h>
-
-#if GLAD_PLATFORM_WIN32
-#include <windows.h>
-#else
-#include <dlfcn.h>
-#endif
-
-
-static void* glad_get_dlopen_handle(const char *lib_names[], int length) {
-    void *handle = NULL;
-    int i;
-
-    for (i = 0; i < length; ++i) {
-#if GLAD_PLATFORM_WIN32
-  #if GLAD_PLATFORM_UWP
-        size_t buffer_size = (strlen(lib_names[i]) + 1) * sizeof(WCHAR);
-        LPWSTR buffer = (LPWSTR) malloc(buffer_size);
-        if (buffer != NULL) {
-            int ret = MultiByteToWideChar(CP_ACP, 0, lib_names[i], -1, buffer, buffer_size);
-            if (ret != 0) {
-                handle = (void*) LoadPackagedLibrary(buffer, 0);
-            }
-            free((void*) buffer);
-        }
-  #else
-        handle = (void*) LoadLibraryA(lib_names[i]);
-  #endif
-#else
-        handle = dlopen(lib_names[i], RTLD_LAZY | RTLD_LOCAL);
-#endif
-        if (handle != NULL) {
-            return handle;
-        }
-    }
-
-    return NULL;
-}
-
-static void glad_close_dlopen_handle(void* handle) {
-    if (handle != NULL) {
-#if GLAD_PLATFORM_WIN32
-        FreeLibrary((HMODULE) handle);
-#else
-        dlclose(handle);
-#endif
-    }
-}
-
-static GLADapiproc glad_dlsym_handle(void* handle, const char *name) {
-    if (handle == NULL) {
-        return NULL;
-    }
-
-#if GLAD_PLATFORM_WIN32
-    return (GLADapiproc) GetProcAddress((HMODULE) handle, name);
-#else
-    return GLAD_GNUC_EXTENSION (GLADapiproc) dlsym(handle, name);
-#endif
-}
-
-#endif /* GLAD_LOADER_LIBRARY_C_ */
-
-typedef void* (GLAD_API_PTR *GLADglxprocaddrfunc)(const char*);
-
-static GLADapiproc glad_glx_get_proc(void *userptr, const char *name) {
-    return GLAD_GNUC_EXTENSION ((GLADapiproc (*)(const char *name)) userptr)(name);
-}
-
-static void* _glx_handle;
-
-static void* glad_glx_dlopen_handle(void) {
-    static const char *NAMES[] = {
-#if defined __CYGWIN__
-        "libGL-1.so",
-#endif
-        "libGL.so.1",
-        "libGL.so"
-    };
-
-    if (_glx_handle == NULL) {
-        _glx_handle = glad_get_dlopen_handle(NAMES, sizeof(NAMES) / sizeof(NAMES[0]));
-    }
-
-    return _glx_handle;
-}
-
-int gladLoaderLoadGLX(Display *display, int screen) {
-    int version = 0;
-    void *handle = NULL;
-    int did_load = 0;
-    GLADglxprocaddrfunc loader;
-
-    did_load = _glx_handle == NULL;
-    handle = glad_glx_dlopen_handle();
-    if (handle != NULL) {
-        loader = (GLADglxprocaddrfunc) glad_dlsym_handle(handle, "glXGetProcAddressARB");
-        if (loader != NULL) {
-            version = gladLoadGLXUserPtr(display, screen, glad_glx_get_proc, GLAD_GNUC_EXTENSION (void*) loader);
-        }
-
-        if (!version && did_load) {
-            gladLoaderUnloadGLX();
-        }
-    }
-
-    return version;
-}
-
-
-void gladLoaderUnloadGLX() {
-    if (_glx_handle != NULL) {
-        glad_close_dlopen_handle(_glx_handle);
-        _glx_handle = NULL;
-    }
-}
-
-#endif /* GLAD_GLX */
 
 #ifdef __cplusplus
 }

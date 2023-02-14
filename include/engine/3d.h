@@ -4,7 +4,9 @@
 #include "engine/geometry.h"
 #include "engine/strings.h"
 
+#ifdef _WIN32
 #include "glad/wgl.h"
+#endif
 #include "glad/gl.h"
 
 #include <vector>
