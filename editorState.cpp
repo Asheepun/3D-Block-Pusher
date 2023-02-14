@@ -176,8 +176,7 @@ void Game_editorState(Game *game_p){
 
 			while((dirEntry = readdir(dataDir)) != NULL){
 
-				if(dirEntry->d_type == DT_REG
-				&& strcmp(dirEntry->d_name, ".") != 0
+				if(strcmp(dirEntry->d_name, ".") != 0
 				&& strcmp(dirEntry->d_name, "..") != 0){
 
 					char fileName[STRING_SIZE];

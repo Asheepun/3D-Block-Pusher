@@ -806,15 +806,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
 	}
 
 	if(uMsg == WM_MOUSEWHEEL){
-		
-		if(HIWORD(wParam) < 0){
-			Engine_pointer.scroll--;
-			printf("scroll--\n");
-		}
-		if(HIWORD(wParam) > 0){
-			Engine_pointer.scroll++;
-			printf("scroll++n");
-		}
+
+		short delta = GET_WHEEL_DELTA_WPARAM(wParam);
+
+		Engine_pointer.scroll = delta / 120;
 
 	}
 
