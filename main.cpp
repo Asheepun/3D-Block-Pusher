@@ -110,6 +110,7 @@ void Engine_start(){
 		game.models.push_back(model);
 	}
 	
+	/*
 	{
 		Model model;
 
@@ -119,6 +120,7 @@ void Engine_start(){
 
 		game.models.push_back(model);
 	}
+	*/
 	
 	Game_addPlayer(&game, getVec3f(0.0, 0.0, 0.0));
 
@@ -259,6 +261,8 @@ int gameTime = 0;
 
 void Engine_update(float deltaTime){
 
+	IGUI_updatePointerScale();
+
 	if(!game.levelNameTextInputData.focused
 	&& !game.levelDoorNameTextInputData.focused){
 		if(Engine_keys[ENGINE_KEY_Q].down){
@@ -281,6 +285,8 @@ void Engine_update(float deltaTime){
 			Game_initLevelState(&game);
 		}else if(game.currentGameState == GAME_STATE_EDITOR){
 			Game_initEditorState(&game);
+		}else if(game.currentGameState == GAME_STATE_MENU){
+			Game_initMenuState(&game);
 		}
 	
 		game.mustInitGameState = false;
@@ -289,6 +295,8 @@ void Engine_update(float deltaTime){
 		Game_levelState(&game);
 	}else if(game.currentGameState == GAME_STATE_EDITOR){
 		Game_editorState(&game);
+	}else if(game.currentGameState == GAME_STATE_MENU){
+		Game_menuState(&game);
 	}
 
 	//set camera direction based on camera rotation
@@ -552,6 +560,11 @@ void Engine_draw(){
 
 	if(game.currentGameState == GAME_STATE_EDITOR){
 		Renderer2D_drawColoredRectangle(&renderer2D, WIDTH / 2 - 3, HEIGHT / 2 - 3, 6, 6, Renderer2D_getColor(0.7, 0.7, 0.7), 1.0);
+	}
+
+	//draw menu background
+	if(game.currentGameState == GAME_STATE_MENU){
+		Renderer2D_drawColoredRectangle(&renderer2D, 0, 0, WIDTH, HEIGHT, Renderer2D_getColor(0.0, 0.0, 0.0), 1.0);
 	}
 
 	IGUI_render(&renderer2D);

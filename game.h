@@ -13,6 +13,7 @@
 enum GameState{
 	GAME_STATE_LEVEL,
 	GAME_STATE_EDITOR,
+	GAME_STATE_MENU,
 };
 
 enum EntityType{
@@ -144,6 +145,12 @@ void Game_levelState(Game *);
 void Game_initEditorState(Game *);
 
 void Game_editorState(Game *);
+
+//FILE: menuState.cpp
+
+void Game_initMenuState(Game *);
+
+void Game_menuState(Game *);
 
 //FILE: levels.cpp
 

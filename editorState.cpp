@@ -103,8 +103,6 @@ void Game_editorState(Game *game_p){
 	//handle GUI
 	if(currentInterfaceMode == INTERFACE_MODE_MENU){
 
-		IGUI_updatePointerScale();
-
 		Engine_setFPSMode(false);
 
 		Vec2f pos = getVec2f(20, 20);

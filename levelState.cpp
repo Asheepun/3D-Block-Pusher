@@ -139,6 +139,11 @@ void Game_levelState(Game *game_p){
 		game_p->mustInitGameState = true;
 		return;
 	}
+	if(Engine_keys[ENGINE_KEY_ESCAPE].downed){
+		game_p->currentGameState = GAME_STATE_MENU;
+		game_p->mustInitGameState = true;
+		return;
+	}
 	game_p->hoveredEntityID = -1;
 
 	//game_p->cameraPos = getVec3f(0.0, 6.0, -6.0);
