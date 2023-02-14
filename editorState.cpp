@@ -164,16 +164,17 @@ void Game_editorState(Game *game_p){
 
 			//lookup level names
 			char dirPath[STRING_SIZE];
-			String_set(dirPath, "levels/", STRING_SIZE);
+			String_set(dirPath, "./levels/", STRING_SIZE);
 
 			DIR *dataDir = opendir(dirPath);
 			struct dirent* dirEntry;
 
-			std::vector<char *> levelNames;
+			std::vector<SmallString> levelNames;
 
 			while((dirEntry = readdir(dataDir)) != NULL){
 
-				if(strcmp(dirEntry->d_name, ".") != 0
+				if(dirEntry->d_type == DT_REG
+				&& strcmp(dirEntry->d_name, ".") != 0
 				&& strcmp(dirEntry->d_name, "..") != 0){
 
 					char fileName[STRING_SIZE];
@@ -187,7 +188,7 @@ void Game_editorState(Game *game_p){
 					String_set(levelNameTmp, fileName, STRING_SIZE);
 					memset(strrchr(levelNameTmp, *"."), *"\0", 1);
 
-					char *levelName = (char *)malloc(SMALL_STRING_SIZE);
+					SmallString levelName;
 					String_set(levelName, levelNameTmp, SMALL_STRING_SIZE);
 
 					levelNames.push_back(levelName);
@@ -195,6 +196,8 @@ void Game_editorState(Game *game_p){
 				}
 			
 			}
+
+			closedir(dataDir);
 
 			//sort level names
 			std::vector <char *>sortedLevelNames;
@@ -255,11 +258,6 @@ void Game_editorState(Game *game_p){
 
 			if(Engine_pointer.upped){
 				openingLevel = false;
-			}
-
-			//free level names
-			for(int i = 0; i < levelNames.size(); i++){
-				free(levelNames[i]);
 			}
 
 		}

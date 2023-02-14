@@ -21,10 +21,18 @@ uniform float shadowMapScale;
 uniform vec4 inputColor;
 uniform vec3 lightDirection;
 
+vec4 lightColor = vec4(1.0, 1.0, 0.9, 1.0);
+
 float lightStrength = 1.0;
 
-float ambientLightFactor = 0.3;
+float ambientLightFactor = 0.2;
 float diffuseLightFactor = 0.7;
+float specularLightFactor = 0.5;
+//float specularLightFactor = 1.0;
+
+float gammaFactor = 1.3;
+
+float shinyFactor = 1.0;
 
 void main(){
 
@@ -47,6 +55,12 @@ void main(){
 
 	float diffuseLight = abs(dot(lightDirection, modelNormal.xyz));
 
+	vec3 reflectionDirection = lightDirection + modelNormal.xyz * 2 * dot(normalize(lightDirection), modelNormal.xyz);
+	vec3 viewDirection = -normalize(relativeModelPosition.xyz);
+	vec3 viewLightHalfway = normalize((viewDirection + normalize(-lightDirection)));
+
+	float specularLight = max(dot(modelNormal.xyz, viewLightHalfway), 0.0);
+
 	float fragmentShadowDepth = lightRelativeModelPosition.z / 100.0;
 
 	float shadowDepthBias = 0.003;
@@ -68,11 +82,12 @@ void main(){
 	bool inShadow = dot(lightDirection, modelNormal.xyz) > 0 || shadowDepthDiff > shadowDepthTolerance;
 	bool inTransparentShadow = transparentShadowDepthDiff > shadowDepthTolerance;
 
-	vec4 shadowedColor = color * (ambientLightFactor + diffuseLightFactor * diffuseLight);
+	vec4 shadowedColor = color * (ambientLightFactor + diffuseLightFactor * diffuseLight + specularLightFactor * pow(specularLight, shinyFactor));
 
 	if(inTransparentShadow){
 		//shadowedColor = vec4(1.0, 0.0, 0.0, 1.0);
-		shadowedColor = color * ambientLightFactor + transparentShadowMapColor * diffuseLight * diffuseLightFactor * (1.0 - transparentShadowMapColor.w);
+		//shadowedColor = color * ambientLightFactor + transparentShadowMapColor * diffuseLight * diffuseLightFactor * specularLight * specularLightFactor * (1.0 - transparentShadowMapColor.w);
+		shadowedColor = color * ambientLightFactor + transparentShadowMapColor * lightColor * (diffuseLight * diffuseLightFactor + pow(specularLight, shinyFactor) * specularLightFactor) * (1.0 - transparentShadowMapColor.w);
 		//color += diffuseLight * diffuseLightFactor * shadowMapColor;
 	}
 
@@ -80,7 +95,10 @@ void main(){
 		shadowedColor = color * ambientLightFactor;
 	}
 
-	color = shadowedColor;
+	color = shadowedColor * lightColor;
+	color.x = pow(color.x, gammaFactor);
+	color.y = pow(color.y, gammaFactor);
+	color.z = pow(color.z, gammaFactor);
 
 	//if(inShadow && shadowMapColor.w < 1.0){
 		//color = shadowMapColor * shadowMapColor.w + color * (1.0 - shadowMapColor.w);

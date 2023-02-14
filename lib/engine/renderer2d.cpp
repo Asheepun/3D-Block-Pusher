@@ -2,6 +2,8 @@
 #include "engine/renderer2d.h"
 #include "engine/shaders.h"
 #include "engine/3d.h"
+#include "engine/strings.h"
+#include "engine/files.h"
 
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
@@ -15,29 +17,15 @@
 #include "math.h"
 #include "string.h"
 
-//PRIVATE FUNCTIONS
+#include <vector>
 
-char *readFile_mustFree(char *filePath){
+struct TextTexture{
+	char text[STRING_SIZE];
+	int fontSize;
+	Renderer2D_Texture texture;
+};
 
-	char *buffer = (char *)malloc(sizeof(char) * 1024);
-	FILE *fd = NULL;
-	long fileLength = 0;
-
-	memset(buffer, 0, 1024);
-
-	fd = fopen(filePath, "r");
-
-	char c;
-	while((c = fgetc(fd)) != EOF){
-		buffer[fileLength] = c;
-		fileLength++;
-	}
-	
-	fclose(fd);
-
-	return buffer;
-
-}
+std::vector<TextTexture> cachedTextTextures;
 
 //INIT FUNCTIONS
 
@@ -289,17 +277,38 @@ void Renderer2D_drawRectangle(Renderer2D_Renderer *renderer_p){
 
 void Renderer2D_beginText(Renderer2D_Renderer *renderer_p, const char *text, int x, int y, int fontSize, Font font){
 
-	glDeleteTextures(1, &renderer_p->textTexture.ID);
+	//check if text texture is cached
+	Renderer2D_Texture texture;
+	bool foundCachedTexture = false;
 
-	Renderer2D_Texture_initFromText(&renderer_p->textTexture, text, font);
+	for(int i = 0; i < cachedTextTextures.size(); i++){
+		if(strcmp(cachedTextTextures[i].text, text) == 0
+		&& cachedTextTextures[i].fontSize == fontSize){
+			texture = cachedTextTextures[i].texture;
+			foundCachedTexture = true;
+		}
+	}
+
+	if(!foundCachedTexture){
+
+		Renderer2D_Texture_initFromText(&texture, text, font);
+
+		TextTexture textTexture;
+		textTexture.texture = texture;
+		String_set(textTexture.text, text, STRING_SIZE);
+		textTexture.fontSize = fontSize;
+
+		cachedTextTextures.push_back(textTexture);
+	
+	}
 
 	int height = fontSize;
-	int width = renderer_p->textTexture.width * fontSize / renderer_p->textTexture.height;
+	int width = texture.width * fontSize / texture.height;
 
 	Renderer2D_beginRectangle(renderer_p, x, y, width, height);
 
 	//Renderer2D_setTexture(renderer_p, renderer_p->textTexture);
-	GL3D_uniformTexture(renderer_p->textureShaderProgram.ID, "tex", 0, renderer_p->textTexture.ID);
+	GL3D_uniformTexture(renderer_p->textureShaderProgram.ID, "tex", 0, texture.ID);
 
 }
 
@@ -327,7 +336,6 @@ void Renderer2D_drawText(Renderer2D_Renderer *renderer_p, const char *text, floa
 	Renderer2D_setShaderProgram(renderer_p, renderer_p->textureShaderProgram);
 
 	Renderer2D_beginText(renderer_p, text, x, y, fontSize, font);
-
 
 	Renderer2D_supplyUniform(renderer_p, &alpha, "alpha", RENDERER2D_UNIFORM_TYPE_FLOAT);
 
