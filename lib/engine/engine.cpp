@@ -829,7 +829,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
 		//clientHeight = lpRect->bottom - lpRect->top;
 
 	}
-	
+
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 
 }
@@ -863,6 +863,14 @@ void Engine_setFPSMode(bool setting){
 	}else{
 		XFixesShowCursor(dpy, root);
 		XFlush(dpy);
+	}
+#endif
+
+#ifdef _WIN32
+	if(Engine_fpsModeOn){
+		while(ShowCursor(false) >= 0){}
+	}else{
+		while(ShowCursor(true) <= 0){}
 	}
 #endif
 
