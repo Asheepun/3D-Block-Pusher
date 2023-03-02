@@ -327,8 +327,6 @@ void Engine_draw(){
 	Mat4f lightCameraMat4f = getLookAtMat4f(lightPos, lightDirection);
 
 	//render shadow maps
-	glDisable(GL_BLEND);
-
 	startTicks = clock();
 
 	if(viewMode == 1){
@@ -464,8 +462,6 @@ void Engine_draw(){
 
 	//draw world
 	if(viewMode == 0){
-
-		glEnable(GL_BLEND);
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);  
 		glViewport(0, 0, Engine_clientWidth, Engine_clientHeight);

@@ -628,6 +628,56 @@ void Game_levelState(Game *game_p){
 		//iterate pushing and friction handling
 		for(int iterations = 0; iterations < 2; iterations++){
 
+			//check if pushing can be done and set velocities accordingly
+			for(int c = 0; c < 3; c++){
+
+				for(int i = 0; i < game_p->entities.size(); i++){
+					
+					Entity *entity_p = &game_p->entities[i];
+
+					if((entity_p->type == ENTITY_TYPE_PLAYER
+					|| entity_p->type == ENTITY_TYPE_ROCK
+					|| entity_p->type == ENTITY_TYPE_STICKY_ROCK)
+					&& fabs(velocities[entity_p->velocityIndex][c]) > 0.001){
+
+						float searchVelocity = velocities[entity_p->velocityIndex][c];
+
+						Vec3f checkPos = entity_p->pos;
+
+						checkPos[c] += searchVelocity;
+
+						size_t ID = entityIDGrid[getEntityIDGridIndexFromPos(checkPos)];
+						Entity *checkEntity_p = Game_getEntityByID(game_p, ID);
+
+						bool stopped = false;
+
+						while(ID != -1){
+							
+							if(checkEntity_p->type == ENTITY_TYPE_OBSTACLE
+							|| c == 1
+							&& (velocities[entity_p->velocityIndex].y < 0.0 && (fabs(velocities[checkEntity_p->velocityIndex].y) < 0.001 || velocities[checkEntity_p->velocityIndex].y > 0.0))){
+								stopped = true;
+								break;
+							}
+
+							checkPos[c] += searchVelocity;
+
+							ID = entityIDGrid[getEntityIDGridIndexFromPos(checkPos)];
+							checkEntity_p = Game_getEntityByID(game_p, ID);
+
+						}
+
+						if(stopped){
+
+							velocities[entity_p->velocityIndex][c] = 0.0;
+
+						}
+
+					}
+
+				}
+			}
+
 			//handle pushing
 			for(int c = 0; c < 3; c++){
 
