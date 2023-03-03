@@ -354,13 +354,16 @@ void Engine_draw(){
 				if(i == 0){
 					glBindFramebuffer(GL_FRAMEBUFFER, shadowMapStaticFBO);  
 					glViewport(0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+
+					glClearColor(1.0, 1.0, 1.0, 1.0);
 				}
 				if(i == 1){
 					glBindFramebuffer(GL_FRAMEBUFFER, transparentShadowMapStaticFBO);  
 					glViewport(0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+
+					glClearColor(0.0, 0.0, 0.0, 0.0);
 				}
 
-				glClearColor(1.0, 1.0, 1.0, 1.0);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			
 			}else{
