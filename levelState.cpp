@@ -607,11 +607,16 @@ void Game_levelState(Game *game_p){
 					if(entity2_p->type == ENTITY_TYPE_RISER
 					&& checkEqualsVec3f(entity1_p->pos, entity2_p->pos, 0.001)){
 
-						velocities[entity1_p->velocityIndex].y = 1.0;
+						for(int k = 0; k < 3; k++){
+							if(fabs(DIRECTION_VECTORS[entity2_p->pusherDirection][k]) > 0.001){
+								velocities[entity1_p->velocityIndex][k] = DIRECTION_VECTORS[entity2_p->pusherDirection][k];
+							}
+						}
 
 					}
 
 					if(entity2_p->type == ENTITY_TYPE_RISER
+					&& entity2_p->pusherDirection == DIRECTION_UP
 					&& checkEqualsVec3f(getAddVec3f(entity1_p->pos, getVec3f(0.0, -1.0, 0.0)), entity2_p->pos, 0.001)
 					&& velocities[entity1_p->velocityIndex].y < 0.0){
 
@@ -905,13 +910,13 @@ void Game_levelState(Game *game_p){
 
 	timeNotMoving++;
 
-	//set player texture
+	//set and riser player texture
 	for(int i = 0; i < game_p->entities.size(); i++){
 
 		Entity *entity_p = &game_p->entities[i];
 
 		if(entity_p->type == ENTITY_TYPE_PLAYER){
-			String_set(entity_p->textureName, "player-south", SMALL_STRING_SIZE);
+			String_set(entity_p->textureName, "player", SMALL_STRING_SIZE);
 		}
 	
 	}

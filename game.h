@@ -10,6 +10,16 @@
 
 #include "math.h"
 
+enum Direction{
+	DIRECTION_UP,
+	DIRECTION_DOWN,
+	DIRECTION_NORTH,
+	DIRECTION_SOUTH,
+	DIRECTION_EAST,
+	DIRECTION_WEST,
+	NUMBER_OF_DIRECTIONS,
+};
+
 enum GameState{
 	GAME_STATE_LEVEL,
 	GAME_STATE_EDITOR,
@@ -44,6 +54,7 @@ typedef struct Entity{
 	char textureName[SMALL_STRING_SIZE];
 	char levelName[SMALL_STRING_SIZE];
 	Vec4f color;
+	enum Direction pusherDirection;
 }Entity;
 
 typedef struct Game{
@@ -114,8 +125,26 @@ static const char *ENTITY_TYPE_NAMES[] = {
 	"Player",
 	"Level Door",
 	"Level Cable",
-	"Riser",
+	"Pusher",
 	"Cloner",
+};
+
+static const char *DIRECTION_NAMES[] = {
+	"UP",
+	"DOWN",
+	"NORTH",
+	"SOUTH",
+	"EAST",
+	"WEST",
+};
+
+static Vec3f DIRECTION_VECTORS[] = {
+	0.0, 1.0, 0.0,
+	0.0, -1.0, 0.0,
+	0.0, 0.0, 1.0,
+	0.0, 0.0, -1.0,
+	1.0, 0.0, 0.0,
+	-1.0, 0.0, 0.0,
 };
 
 //FILE: world.cpp

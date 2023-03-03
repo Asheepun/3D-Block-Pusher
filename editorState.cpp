@@ -154,6 +154,36 @@ void Game_editorState(Game *game_p){
 				}
 
 			}
+			if(editingEntity_p->type == ENTITY_TYPE_RISER){
+
+				const char *textureNames[] = {
+					"pusher-up",
+					"blank",
+					"pusher-north",
+					"pusher-south",
+					"pusher-east",
+					"pusher-west",
+				};
+
+				Vec2f pos = getVec2f(400, 20);
+
+				for(int i = 0; i < NUMBER_OF_DIRECTIONS; i++){
+
+					if(i == DIRECTION_DOWN){
+						continue;
+					}
+
+					if(IGUI_textButton_click(DIRECTION_NAMES[i], pos, 100, editingEntity_p->pusherDirection == i)){
+						editingEntity_p->pusherDirection = (enum Direction)i;
+						String_set(editingEntity_p->textureName, textureNames[editingEntity_p->pusherDirection], SMALL_STRING_SIZE);
+						madeEdit = true;
+					}
+
+					pos.y += 120;
+
+				}
+			
+			}
 			
 		}
 
@@ -454,6 +484,14 @@ void Game_editorState(Game *game_p){
 
 					currentInterfaceMode = INTERFACE_MODE_MENU;
 				}
+
+				if(hoveredEntity_p->type == ENTITY_TYPE_RISER){
+					editingEntity = true;
+					editingEntityID = game_p->hoveredEntityID;
+
+					currentInterfaceMode = INTERFACE_MODE_MENU;
+				}
+
 
 			}
 

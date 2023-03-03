@@ -161,22 +161,27 @@ void Engine_start(){
 	}
 	{
 		Texture texture;
-		Texture_initFromFile(&texture, "assets/textures/player-south.png", "player-south");
+		Texture_initFromFile(&texture, "assets/textures/pusher-up.png", "pusher-up");
 		game.textures.push_back(texture);
 	}
 	{
 		Texture texture;
-		Texture_initFromFile(&texture, "assets/textures/player-west.png", "player-west");
+		Texture_initFromFile(&texture, "assets/textures/pusher-north.png", "pusher-north");
 		game.textures.push_back(texture);
 	}
 	{
 		Texture texture;
-		Texture_initFromFile(&texture, "assets/textures/player-north.png", "player-north");
+		Texture_initFromFile(&texture, "assets/textures/pusher-south.png", "pusher-south");
 		game.textures.push_back(texture);
 	}
 	{
 		Texture texture;
-		Texture_initFromFile(&texture, "assets/textures/player-east.png", "player-east");
+		Texture_initFromFile(&texture, "assets/textures/pusher-east.png", "pusher-east");
+		game.textures.push_back(texture);
+	}
+	{
+		Texture texture;
+		Texture_initFromFile(&texture, "assets/textures/pusher-west.png", "pusher-west");
 		game.textures.push_back(texture);
 	}
 

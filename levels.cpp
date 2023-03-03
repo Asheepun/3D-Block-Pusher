@@ -61,6 +61,10 @@ void Game_writeCurrentLevelStateToFile(Game *game_p, const char *path){
 		String_append(data, entity_p->textureName);
 		String_append(data, "\n");
 
+		String_append(data, "-pusherDirection\n");
+		String_append_int(data, entity_p->pusherDirection);
+		String_append(data, "\n");
+
 		if(!(strcmp(entity_p->levelName, "") == 0)){
 			String_append(data, "-levelName\n");
 			String_append(data, entity_p->levelName);
@@ -93,6 +97,7 @@ void Game_loadLevelFile(Game *game_p, const char *path){
 	String_set(modelName, "", SMALL_STRING_SIZE);
 	String_set(levelName, "", SMALL_STRING_SIZE);
 	String_set(textureName, "", SMALL_STRING_SIZE);
+	enum Direction pusherDirection = DIRECTION_UP;
 
 	char *ptr = NULL;
 
@@ -141,6 +146,10 @@ void Game_loadLevelFile(Game *game_p, const char *path){
 			String_set(textureName, fileLines[i + 1], SMALL_STRING_SIZE);
 		}
 
+		if(strcmp(fileLines[i], "-pusherDirection") == 0){
+			pusherDirection = (enum Direction)strtol(fileLines[i + 1], &ptr, 10);
+		}
+
 		if(strcmp(fileLines[i], ":end-entity") == 0){
 
 			Entity entity;
@@ -154,6 +163,8 @@ void Game_loadLevelFile(Game *game_p, const char *path){
 
 			Entity_init(&entity, pos, rotation, 0.5, modelName, textureName, color, type);
 
+			entity.pusherDirection = pusherDirection;
+
 			String_set(entity.levelName, levelName, SMALL_STRING_SIZE);
 
 			game_p->entities.push_back(entity);
@@ -162,6 +173,7 @@ void Game_loadLevelFile(Game *game_p, const char *path){
 			String_set(modelName, "", SMALL_STRING_SIZE);
 			String_set(levelName, "", SMALL_STRING_SIZE);
 			String_set(textureName, "", SMALL_STRING_SIZE);
+			pusherDirection = DIRECTION_UP;
 
 		}
 

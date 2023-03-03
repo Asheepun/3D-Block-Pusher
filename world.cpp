@@ -136,7 +136,9 @@ void Game_addRiser(Game *game_p, Vec3f pos){
 
 	Entity entity;
 
-	Entity_init(&entity, pos, getVec3f(0.0, 0.0, 0.0), 0.5, "cube", "blank", RISER_COLOR, ENTITY_TYPE_RISER);
+	Entity_init(&entity, pos, getVec3f(0.0, 0.0, 0.0), 0.5, "cube", "pusher-up", RISER_COLOR, ENTITY_TYPE_RISER);
+
+	entity.pusherDirection = DIRECTION_UP;
 
 	game_p->entities.push_back(entity);
 
