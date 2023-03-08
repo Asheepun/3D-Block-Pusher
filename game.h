@@ -55,6 +55,7 @@ typedef struct Entity{
 	char levelName[SMALL_STRING_SIZE];
 	Vec4f color;
 	enum Direction pusherDirection;
+	bool floating;
 }Entity;
 
 typedef struct Game{

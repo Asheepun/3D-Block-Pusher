@@ -31,6 +31,8 @@ void Entity_init(Entity *entity_p, Vec3f pos, Vec3f rotation, float scale, const
 	//entity_p->velocity = getVec3f(0.0, 0.0, 0.0);
 	entity_p->velocityIndex = -1;
 
+	entity_p->floating = false;
+
 }
 
 Entity *Game_getEntityByID(Game *game_p, size_t ID){

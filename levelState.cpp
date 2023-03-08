@@ -421,7 +421,7 @@ void Game_levelState(Game *game_p){
 
 			if(fabs(entity_p->pos.x) > levelWidth / 2
 			|| fabs(entity_p->pos.y) > levelHeight / 2
-			|| entity_p->pos.y < -2.0
+			|| entity_p->pos.y < -3.0
 			|| fabs(entity_p->pos.z) > levelWidth / 2){
 
 				game_p->entities.erase(game_p->entities.begin() + i);
@@ -585,39 +585,6 @@ void Game_levelState(Game *game_p){
 			
 			}
 
-
-			/*
-			int numberOfStickedRocks = 1;
-			while(numberOfStickedRocks > 0){
-
-				numberOfStickedRocks = 0;
-
-				for(int i = 0; i < game_p->entities.size(); i++){
-					
-					Entity *entity1_p = &game_p->entities[i];
-
-					if(entity1_p->type == ENTITY_TYPE_PLAYER){
-
-						for(int j = 0; j < game_p->entities.size(); j++){
-							
-							Entity *entity2_p = &game_p->entities[j];
-
-							if(entity2_p->type == ENTITY_TYPE_STICKY_ROCK
-							&& getMagVec3f(getSubVec3f(entity1_p->pos, entity2_p->pos)) <= 1.001){
-								entity2_p->type = ENTITY_TYPE_PLAYER;
-								entity2_p->color = PLAYER_COLOR;
-								entity2_p->playerID = entity1_p->playerID;
-								numberOfStickedRocks++;
-							}
-
-						}
-
-					}
-
-				}
-			
-			}
-			*/
 		}
 
 		//clear velocities
@@ -636,7 +603,9 @@ void Game_levelState(Game *game_p){
 			if(entity_p->type == ENTITY_TYPE_ROCK
 			|| entity_p->type == ENTITY_TYPE_STICKY_ROCK){
 
-				velocities.push_back(getVec3f(0.0, -1.0, 0.0));
+				Vec3f velocity = getVec3f(0.0, -1.0, 0.0);
+
+				velocities.push_back(velocity);
 
 				entity_p->velocityIndex = velocities.size() - 1;
 			
@@ -644,6 +613,17 @@ void Game_levelState(Game *game_p){
 
 			if(entity_p->type == ENTITY_TYPE_PLAYER){
 				entity_p->velocityIndex = entity_p->playerID;
+			}
+
+		}
+
+		//handle floating entities
+		for(int i = 0; i < game_p->entities.size(); i++){
+
+			Entity *entity_p = &game_p->entities[i];
+
+			if(entity_p->floating){
+				velocities[entity_p->velocityIndex].y = 0.0;
 			}
 
 		}

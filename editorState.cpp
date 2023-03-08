@@ -184,6 +184,19 @@ void Game_editorState(Game *game_p){
 				}
 			
 			}
+
+			if(editingEntity_p->type == ENTITY_TYPE_PLAYER
+			|| editingEntity_p->type == ENTITY_TYPE_ROCK
+			|| editingEntity_p->type == ENTITY_TYPE_STICKY_ROCK){
+
+				if(IGUI_textButton_click("Floating", getVec2f(400, 20), 100, editingEntity_p->floating)){
+
+					editingEntity_p->floating = !editingEntity_p->floating;
+
+					madeEdit = true;
+				}
+			
+			}
 			
 		}
 
@@ -478,20 +491,16 @@ void Game_editorState(Game *game_p){
 					currentInterfaceMode = INTERFACE_MODE_MENU;
 				}
 
-				if(hoveredEntity_p->type == ENTITY_TYPE_LEVEL_CABLE){
+				if(hoveredEntity_p->type == ENTITY_TYPE_LEVEL_CABLE
+				|| hoveredEntity_p->type == ENTITY_TYPE_RISER
+				|| hoveredEntity_p->type == ENTITY_TYPE_PLAYER
+				|| hoveredEntity_p->type == ENTITY_TYPE_ROCK
+				|| hoveredEntity_p->type == ENTITY_TYPE_STICKY_ROCK){
 					editingEntity = true;
 					editingEntityID = game_p->hoveredEntityID;
 
 					currentInterfaceMode = INTERFACE_MODE_MENU;
 				}
-
-				if(hoveredEntity_p->type == ENTITY_TYPE_RISER){
-					editingEntity = true;
-					editingEntityID = game_p->hoveredEntityID;
-
-					currentInterfaceMode = INTERFACE_MODE_MENU;
-				}
-
 
 			}
 
