@@ -27,6 +27,7 @@ float terrainTextureScale = 10.0;
 
 unsigned int modelShader;
 unsigned int shadowMapShader;
+unsigned int particleShader;
 
 unsigned int shadowMapFBO;
 unsigned int shadowMapStaticFBO;
@@ -218,6 +219,17 @@ void Engine_start(){
 		glLinkProgram(shaderProgram);
 
 		shadowMapShader = shaderProgram;
+	}
+	{
+		unsigned int vertexShader = getCompiledShader("shaders/particle-vertex-shader.glsl", GL_VERTEX_SHADER);
+		unsigned int fragmentShader = getCompiledShader("shaders/particle-fragment-shader.glsl", GL_FRAGMENT_SHADER);
+
+		unsigned int shaderProgram = glCreateProgram();
+		glAttachShader(shaderProgram, vertexShader);
+		glAttachShader(shaderProgram, fragmentShader);
+		glLinkProgram(shaderProgram);
+
+		particleShader = shaderProgram;
 	}
 
 	//generate shadow map depth texture
@@ -487,7 +499,7 @@ void Engine_draw(){
 
 				Entity *entity_p = &game.entities[j];
 
-				//handle transparency layers
+				//handle transparency layers (draw transparent entities last)
 				if(entity_p->color.w < 1.0
 				&& i == 0
 				|| entity_p->color.w == 1.0
@@ -555,6 +567,64 @@ void Engine_draw(){
 			
 			}
 		}
+	}
+
+	//draw particles
+	for(int i = 0; i < game.particles.size(); i++){
+
+		Particle *particle_p = &game.particles[i];
+
+		unsigned int currentShaderProgram = particleShader;
+
+		Model *model_p;
+
+		for(int k = 0; k < game.models.size(); k++){
+			if(strcmp("cube", game.models[k].name) == 0){
+				model_p = &game.models[k];
+			}
+		}
+
+		Texture *texture_p;
+
+		for(int k = 0; k < game.textures.size(); k++){
+			if(strcmp("blank", game.textures[k].name) == 0){
+				texture_p = &game.textures[k];
+			}
+		}
+
+		Vec4f color = particle_p->color;
+
+		glUseProgram(currentShaderProgram);
+
+		glBindBuffer(GL_ARRAY_BUFFER, model_p->VBO);
+		glBindVertexArray(model_p->VAO);
+
+		GL3D_uniformTexture(currentShaderProgram, "colorTexture", 0, texture_p->ID);
+		GL3D_uniformTexture(currentShaderProgram, "shadowMapDepthTexture", 1, shadowMapDepthTexture.ID);
+		GL3D_uniformTexture(currentShaderProgram, "transparentShadowMapDepthTexture", 2, transparentShadowMapDepthTexture.ID);
+		GL3D_uniformTexture(currentShaderProgram, "transparentShadowMapColorTexture", 3, transparentShadowMapColorTexture.ID);
+		
+		Mat4f modelRotationMat4f = getIdentityMat4f();
+
+		//Mat4f_mulByMat4f(&modelRotationMat4f, getRotationMat4f(entity_p->rotation.x, entity_p->rotation.y, entity_p->rotation.z));
+
+		Mat4f modelMat4f = getIdentityMat4f();
+
+		Mat4f_mulByMat4f(&modelMat4f, getTranslationMat4f(particle_p->pos.x, particle_p->pos.y, particle_p->pos.z));
+
+		Mat4f_mulByMat4f(&modelMat4f, getScalingMat4f(particle_p->scale));
+
+		GL3D_uniformMat4f(currentShaderProgram, "modelMatrix", modelMat4f);
+		GL3D_uniformMat4f(currentShaderProgram, "modelRotationMatrix", modelRotationMat4f);
+		GL3D_uniformMat4f(currentShaderProgram, "cameraMatrix", cameraMat4f);
+		GL3D_uniformMat4f(currentShaderProgram, "perspectiveMatrix", perspectiveMat4f);
+		GL3D_uniformMat4f(currentShaderProgram, "lightCameraMatrix", lightCameraMat4f);
+		GL3D_uniformFloat(currentShaderProgram, "shadowMapScale", shadowMapScale);
+		GL3D_uniformVec3f(currentShaderProgram, "lightDirection", lightDirection);
+		GL3D_uniformVec4f(currentShaderProgram, "inputColor", color);
+
+		glDrawArrays(GL_TRIANGLES, 0, model_p->numberOfTriangles * 3);
+	
 	}
 
 	//draw HUD

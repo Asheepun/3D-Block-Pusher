@@ -156,4 +156,14 @@ void Game_addCloner(Game *game_p, Vec3f pos){
 
 }
 
+void Particle_init(Particle *particle_p){
 
+	particle_p->pos = getVec3f(0.0, 0.0, 0.0);
+	particle_p->velocity = getVec3f(0.0, 0.0, 0.0);
+	particle_p->acceleration = getVec3f(0.0, 0.0, 0.0);
+	particle_p->resistance = getVec3f(1.0, 1.0, 1.0);
+	particle_p->scale = 1.0;
+	particle_p->color = getVec4f(1.0, 1.0, 1.0, 1.0);
+	particle_p->counter = 0;
+
+}

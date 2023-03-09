@@ -30,6 +30,8 @@ int undoKeyHoldTime = 0;
 int UNDO_KEY_START_DELAY = 10;
 int UNDO_KEY_REPEAT_DELAY = 5;
 
+int particleCounter = 0;
+
 std::vector<size_t> entityIDGrid;
 
 std::vector<enum Actions>actionQueue;
@@ -62,6 +64,8 @@ Vec3f moveFunc(Vec3f startPos, Vec3f endPos, float t){
 }
 
 void Game_initLevelState(Game *game_p){
+
+	game_p->particles.clear();
 
 	undoArray.clear();
 
@@ -127,6 +131,7 @@ void Game_initLevelState(Game *game_p){
 	}
 
 	game_p->needToRenderStaticShadows = true;
+
 
 }
 
@@ -1010,6 +1015,70 @@ void Game_levelState(Game *game_p){
 
 		}
 
+	}
+
+	//add particles to floating entities
+	for(int i = 0; i < game_p->entities.size(); i++){
+
+		Entity *entity_p = &game_p->entities[i];
+		
+		if(entity_p->floating
+		&& particleCounter % 2 == 0){
+
+			Particle particle;
+
+			Particle_init(&particle);
+
+			Vec2f direction = getVec2f(getRandom() - 0.5, getRandom() - 0.5);
+			Vec2f_normalize(&direction);
+			Vec2f_mulByFloat(&direction, 1.0 - 0.2 * fabs(fabs(direction.x) - fabs(direction.y)));//make direction more like a square
+
+			Vec3f pos = getVec3f(entity_p->pos.x + direction.x * entity_p->scale * 0.8, entity_p->pos.y - entity_p->scale + getRandom() * entity_p->scale * 0.1, entity_p->pos.z + direction.y * entity_p->scale * 0.8);
+
+			float accelerationValue = 0.03;
+			Vec3f acceleration = getVec3f(direction.x * accelerationValue, (getRandom() - 0.5) * 0.01, direction.y * accelerationValue);
+
+			float resistanceValue = 0.93;
+			Vec3f resistance = getVec3f(resistanceValue, resistanceValue, resistanceValue);
+
+			particle.pos = pos;
+			particle.scale = 0.05;
+			particle.velocity = acceleration;
+			particle.resistance = resistance;
+
+			game_p->particles.push_back(particle);
+			
+		}
+
+	}
+
+	particleCounter++;
+
+	//handle particles
+	for(int i = 0; i < game_p->particles.size(); i++){
+
+		Particle *particle_p = &game_p->particles[i];
+
+		Vec3f_add(&particle_p->velocity, particle_p->acceleration);
+
+		Vec3f_mulByVec3f(&particle_p->velocity, particle_p->resistance);
+
+		Vec3f_add(&particle_p->pos, particle_p->velocity);
+
+		float fadeAwayTime = 60.0;
+
+		if(particleCounter > fadeAwayTime / 2.0){
+			//particle_p->color.w = 1.0 - (float)(particle_p->counter - fadeAwayTime / 2.0) / fadeAwayTime;
+		}
+
+		particle_p->counter++;
+
+		if(particle_p->counter > fadeAwayTime){
+			game_p->particles.erase(game_p->particles.begin() + i);
+			i--;
+			continue;
+		}
+	
 	}
 
 }

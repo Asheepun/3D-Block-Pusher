@@ -58,9 +58,20 @@ typedef struct Entity{
 	bool floating;
 }Entity;
 
+struct Particle{
+	Vec3f pos;
+	Vec3f velocity;
+	Vec3f acceleration;
+	Vec3f resistance;
+	float scale;
+	Vec4f color;
+	int counter;
+};
+
 typedef struct Game{
 
 	std::vector<Entity> entities;
+	std::vector<Particle> particles;
 
 	Vec3f playerLevelHubPos;
 
@@ -163,6 +174,8 @@ void Game_addLevelDoor(Game *, Vec3f, const char *);
 void Game_addLevelCable(Game *, Vec3f);
 void Game_addRiser(Game *, Vec3f);
 void Game_addCloner(Game *, Vec3f);
+
+void Particle_init(Particle *);
 
 //FILE: levelState.cpp
 
