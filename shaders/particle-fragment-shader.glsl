@@ -5,7 +5,6 @@ in vec4 fragmentNormal;
 
 out vec4 FragColor;
 
-uniform sampler2D colorTexture;
 uniform sampler2D shadowMapDepthTexture;
 uniform sampler2D transparentShadowMapDepthTexture;
 uniform sampler2D transparentShadowMapColorTexture;

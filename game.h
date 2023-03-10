@@ -159,6 +159,8 @@ static Vec3f DIRECTION_VECTORS[] = {
 	-1.0, 0.0, 0.0,
 };
 
+static int MAX_NUMBER_OF_PARTICLES = 1024;
+
 //FILE: world.cpp
 
 void Entity_init(Entity *, Vec3f, Vec3f, float, const char *, const char *, Vec4f, enum EntityType);

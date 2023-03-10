@@ -461,7 +461,7 @@ void Game_levelState(Game *game_p){
 
 		}
 
-		//handle cloners clonging machines
+		//handle cloners
 		{
 			int numberOfEmptyCloners = 0;
 			int numberOfFilledCloners = 0;
@@ -512,6 +512,7 @@ void Game_levelState(Game *game_p){
 							
 							Entity entity2;
 							Entity_init(&entity2, entity1_p->pos, cloneEntity_p->rotation, cloneEntity_p->scale, cloneEntity_p->modelName, cloneEntity_p->textureName, cloneEntity_p->color, cloneEntity_p->type);
+							entity2.floating = cloneEntity_p->floating;
 
 							if(entity2.type == ENTITY_TYPE_PLAYER){
 								entity2.playerID = game_p->numberOfPlayers;
@@ -1074,6 +1075,7 @@ void Game_levelState(Game *game_p){
 		particle_p->counter++;
 
 		if(particle_p->counter > fadeAwayTime){
+			//remove particle
 			game_p->particles.erase(game_p->particles.begin() + i);
 			i--;
 			continue;

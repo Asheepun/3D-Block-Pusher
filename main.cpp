@@ -584,14 +584,6 @@ void Engine_draw(){
 			}
 		}
 
-		Texture *texture_p;
-
-		for(int k = 0; k < game.textures.size(); k++){
-			if(strcmp("blank", game.textures[k].name) == 0){
-				texture_p = &game.textures[k];
-			}
-		}
-
 		Vec4f color = particle_p->color;
 
 		glUseProgram(currentShaderProgram);
@@ -599,7 +591,6 @@ void Engine_draw(){
 		glBindBuffer(GL_ARRAY_BUFFER, model_p->VBO);
 		glBindVertexArray(model_p->VAO);
 
-		GL3D_uniformTexture(currentShaderProgram, "colorTexture", 0, texture_p->ID);
 		GL3D_uniformTexture(currentShaderProgram, "shadowMapDepthTexture", 1, shadowMapDepthTexture.ID);
 		GL3D_uniformTexture(currentShaderProgram, "transparentShadowMapDepthTexture", 2, transparentShadowMapDepthTexture.ID);
 		GL3D_uniformTexture(currentShaderProgram, "transparentShadowMapColorTexture", 3, transparentShadowMapColorTexture.ID);
@@ -640,6 +631,8 @@ void Engine_draw(){
 	if(game.currentGameState == GAME_STATE_MENU){
 		Renderer2D_drawColoredRectangle(&renderer2D, 0, 0, WIDTH, HEIGHT, Renderer2D_getColor(0.0, 0.0, 0.0), 1.0);
 	}
+
+	printf("numberOfEntities: %i\n", game.entities.size());
 
 	IGUI_render(&renderer2D);
 
