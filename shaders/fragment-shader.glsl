@@ -2,6 +2,9 @@
 in vec4 fragmentPosition;
 in vec2 texturePosition;
 in vec4 fragmentNormal;
+in mat4 modelMatrix;
+in mat4 modelRotationMatrix;
+in vec4 inputColor;
 
 out vec4 FragColor;
 
@@ -10,15 +13,13 @@ uniform sampler2D shadowMapDepthTexture;
 uniform sampler2D transparentShadowMapDepthTexture;
 uniform sampler2D transparentShadowMapColorTexture;
 
-uniform mat4 modelMatrix;
-uniform mat4 modelRotationMatrix;
 uniform mat4 cameraMatrix;
 uniform mat4 perspectiveMatrix;
 uniform mat4 lightCameraMatrix;
 
 uniform float shadowMapScale;
 
-uniform vec4 inputColor;
+//uniform vec4 inputColor;
 uniform vec3 lightDirection;
 
 vec4 lightColor = vec4(1.0, 1.0, 0.9, 1.0);
@@ -74,6 +75,9 @@ void main(){
 
 	bool inShadow = dot(lightDirection, modelNormal.xyz) > 0 || shadowDepthDiff > shadowDepthTolerance;
 	bool inTransparentShadow = transparentShadowDepthDiff > shadowDepthTolerance;
+
+	inShadow = false;
+	inTransparentShadow = false;
 
 	if(inShadow){
 		color *= ambientLightFactor;

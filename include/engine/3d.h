@@ -54,4 +54,6 @@ void GL3D_uniformFloat(unsigned int, const char *, float);
 
 void GL3D_uniformTexture(unsigned int, const char *, unsigned int, unsigned int);
 
+void GL3D_uniformTextureBuffer(unsigned int, const char *, unsigned int, unsigned int);
+
 #endif

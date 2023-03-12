@@ -343,6 +343,7 @@ void Engine_draw(){
 	Vec3f_normalize(&lightDirection);
 	Mat4f lightCameraMat4f = getLookAtMat4f(lightPos, lightDirection);
 
+	/*
 	//render shadow maps
 	startTicks = clock();
 
@@ -479,6 +480,7 @@ void Engine_draw(){
 	endTicks = clock();
 
 	clock_t shadowMapTicks = endTicks - startTicks;
+	*/
 
 	//draw world
 	if(viewMode == 0){
@@ -493,6 +495,163 @@ void Engine_draw(){
 		glClearColor(0.5, 0.5, 0.9, 1.0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		//setup texture buffers with model matrices and model rotation matrices
+		struct TextureBufferContainer{
+			std::vector<Mat4f> modelMatrices;
+			unsigned int modelMatricesVBO;
+			unsigned int modelMatricesTB;
+			std::vector<Mat4f> modelRotationMatrices;
+			unsigned int modelRotationMatricesVBO;
+			unsigned int modelRotationMatricesTB;
+			std::vector<Vec4f> inputColors;
+			unsigned int inputColorsVBO;
+			unsigned int inputColorsTB;
+			int numberOfInstances;
+		};
+
+		TextureBufferContainer textureBufferContainers[2][game.models.size()];
+		//InstanceTextureBuffers entityTextureBuffers;
+		//InstanceTextureBuffers transparentEntityTextureBuffers;
+
+		//init texture buffer containers
+		for(int i = 0; i < 2; i++){
+			for(int j = 0; j < game.models.size(); j++){
+				textureBufferContainers[i][j].numberOfInstances = 0;
+			}
+		}
+
+		for(int i = 0; i < game.entities.size(); i++){
+
+			Entity *entity_p = &game.entities[i];
+
+			TextureBufferContainer *textureBufferContainer_p;
+
+			int modelIndex = 0;
+			for(int j = 0; j < game.models.size(); j++){
+				if(strcmp(game.models[j].name, entity_p->modelName) == 0){
+					modelIndex = j;
+				}
+			}
+
+			if(entity_p->color.w < 1.0){
+				textureBufferContainer_p = &textureBufferContainers[1][modelIndex];
+			}else{
+				textureBufferContainer_p = &textureBufferContainers[0][modelIndex];
+			}
+
+			Mat4f modelMat4f = getIdentityMat4f();
+
+			Mat4f_mulByMat4f(&modelMat4f, getTranslationMat4f(entity_p->pos.x, entity_p->pos.y, entity_p->pos.z));
+
+			Mat4f_mulByMat4f(&modelMat4f, getScalingMat4f(entity_p->scale));
+
+			textureBufferContainer_p->modelMatrices.push_back(modelMat4f);
+
+			Mat4f modelRotationMat4f = getIdentityMat4f();
+
+			Mat4f_mulByMat4f(&modelRotationMat4f, getRotationMat4f(entity_p->rotation.x, entity_p->rotation.y, entity_p->rotation.z));
+
+			textureBufferContainer_p->modelRotationMatrices.push_back(modelRotationMat4f);
+
+			textureBufferContainer_p->inputColors.push_back(entity_p->color);
+
+			textureBufferContainer_p->numberOfInstances++;
+		
+		}
+
+		//generate VBOs and texture buffers
+		for(int i = 0; i < 2; i++){
+			for(int j = 0; j < game.models.size(); j++){
+
+				TextureBufferContainer *textureBufferContainer_p = &textureBufferContainers[i][j];
+
+				glGenBuffers(1, &textureBufferContainer_p->modelMatricesVBO);
+				glBindBuffer(GL_ARRAY_BUFFER, textureBufferContainer_p->modelMatricesVBO);
+				glBufferData(GL_ARRAY_BUFFER, sizeof(Mat4f) * textureBufferContainer_p->modelMatrices.size(), &textureBufferContainer_p->modelMatrices[0], GL_STATIC_DRAW);
+
+				glGenTextures(1, &textureBufferContainer_p->modelMatricesTB);
+				glBindTexture(GL_TEXTURE_BUFFER, textureBufferContainer_p->modelMatricesTB);
+				glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, textureBufferContainer_p->modelMatricesVBO);
+
+				glGenBuffers(1, &textureBufferContainer_p->modelRotationMatricesVBO);
+				glBindBuffer(GL_ARRAY_BUFFER, textureBufferContainer_p->modelRotationMatricesVBO);
+				glBufferData(GL_ARRAY_BUFFER, sizeof(Mat4f) * textureBufferContainer_p->modelRotationMatrices.size(), &textureBufferContainer_p->modelRotationMatrices[0], GL_STATIC_DRAW);
+
+				glGenTextures(1, &textureBufferContainer_p->modelRotationMatricesTB);
+				glBindTexture(GL_TEXTURE_BUFFER, textureBufferContainer_p->modelRotationMatricesTB);
+				glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, textureBufferContainer_p->modelRotationMatricesVBO);
+
+				glGenBuffers(1, &textureBufferContainer_p->inputColorsVBO);
+				glBindBuffer(GL_ARRAY_BUFFER, textureBufferContainer_p->inputColorsVBO);
+				glBufferData(GL_ARRAY_BUFFER, sizeof(Vec4f) * textureBufferContainer_p->inputColors.size(), &textureBufferContainer_p->inputColors[0], GL_STATIC_DRAW);
+
+				glGenTextures(1, &textureBufferContainer_p->inputColorsTB);
+				glBindTexture(GL_TEXTURE_BUFFER, textureBufferContainer_p->inputColorsTB);
+				glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, textureBufferContainer_p->inputColorsVBO);
+
+			}
+		
+		}
+
+		//draw entities instanced
+		unsigned int currentShaderProgram = modelShader;
+
+		glUseProgram(currentShaderProgram);
+
+		Texture *texture_p = &game.textures[1];
+
+		GL3D_uniformTexture(currentShaderProgram, "colorTexture", 0, texture_p->ID);
+		GL3D_uniformTexture(currentShaderProgram, "shadowMapDepthTexture", 1, shadowMapDepthTexture.ID);
+		GL3D_uniformTexture(currentShaderProgram, "transparentShadowMapDepthTexture", 2, transparentShadowMapDepthTexture.ID);
+		GL3D_uniformTexture(currentShaderProgram, "transparentShadowMapColorTexture", 3, transparentShadowMapColorTexture.ID);
+
+		GL3D_uniformMat4f(currentShaderProgram, "modelMatrix", getIdentityMat4f());
+		GL3D_uniformMat4f(currentShaderProgram, "modelRotationMatrix", getIdentityMat4f());
+		GL3D_uniformMat4f(currentShaderProgram, "cameraMatrix", cameraMat4f);
+		GL3D_uniformMat4f(currentShaderProgram, "perspectiveMatrix", perspectiveMat4f);
+		GL3D_uniformMat4f(currentShaderProgram, "lightCameraMatrix", lightCameraMat4f);
+		GL3D_uniformFloat(currentShaderProgram, "shadowMapScale", shadowMapScale);
+		GL3D_uniformVec3f(currentShaderProgram, "lightDirection", lightDirection);
+
+		for(int i = 0; i < 2; i++){
+			for(int j = 0; j < game.models.size(); j++){
+
+				TextureBufferContainer *textureBufferContainer_p = &textureBufferContainers[i][j];
+
+				Model *model_p = &game.models[j];
+
+				glBindBuffer(GL_ARRAY_BUFFER, model_p->VBO);
+				glBindVertexArray(model_p->VAO);
+
+				GL3D_uniformTextureBuffer(currentShaderProgram, "modelMatrixTextureBuffer", 4, textureBufferContainer_p->modelMatricesTB);
+				GL3D_uniformTextureBuffer(currentShaderProgram, "modelRotationMatrixTextureBuffer", 5, textureBufferContainer_p->modelRotationMatricesTB);
+				GL3D_uniformTextureBuffer(currentShaderProgram, "inputColorTextureBuffer", 6, textureBufferContainer_p->inputColorsTB);
+
+				glDrawArraysInstanced(GL_TRIANGLES, 0, model_p->numberOfTriangles * 3, textureBufferContainer_p->numberOfInstances);
+
+			}
+
+		}
+
+		//free texture buffers and vertex buffer objects
+		for(int i = 0; i < 2; i++){
+			for(int j = 0; j < game.models.size(); j++){
+
+				TextureBufferContainer *textureBufferContainer_p = &textureBufferContainers[i][j];
+
+				glDeleteBuffers(1, &textureBufferContainer_p->modelMatricesVBO);
+				glDeleteTextures(1, &textureBufferContainer_p->modelMatricesTB);
+
+				glDeleteBuffers(1, &textureBufferContainer_p->modelRotationMatricesVBO);
+				glDeleteTextures(1, &textureBufferContainer_p->modelRotationMatricesTB);
+
+				glDeleteBuffers(1, &textureBufferContainer_p->inputColorsVBO);
+				glDeleteTextures(1, &textureBufferContainer_p->inputColorsTB);
+
+			}
+		}
+
+		/*
 		//draw entities
 		for(int i = 0; i < 2; i++){
 			for(int j = 0; j < game.entities.size(); j++){
@@ -550,9 +709,9 @@ void Engine_draw(){
 
 				Mat4f modelMat4f = getIdentityMat4f();
 
-				Mat4f_mulByMat4f(&modelMat4f, getTranslationMat4f(entity_p->pos.x, entity_p->pos.y, entity_p->pos.z));
+				//Mat4f_mulByMat4f(&modelMat4f, getTranslationMat4f(entity_p->pos.x, entity_p->pos.y, entity_p->pos.z));
 
-				Mat4f_mulByMat4f(&modelMat4f, getScalingMat4f(entity_p->scale));
+				//Mat4f_mulByMat4f(&modelMat4f, getScalingMat4f(entity_p->scale));
 
 				GL3D_uniformMat4f(currentShaderProgram, "modelMatrix", modelMat4f);
 				GL3D_uniformMat4f(currentShaderProgram, "modelRotationMatrix", modelRotationMat4f);
@@ -567,8 +726,10 @@ void Engine_draw(){
 			
 			}
 		}
+	*/
 	}
 
+	/*
 	//draw particles
 	for(int i = 0; i < game.particles.size(); i++){
 
@@ -617,6 +778,7 @@ void Engine_draw(){
 		glDrawArrays(GL_TRIANGLES, 0, model_p->numberOfTriangles * 3);
 	
 	}
+	*/
 
 	//draw HUD
 	glDisable(GL_DEPTH_TEST);
@@ -631,8 +793,6 @@ void Engine_draw(){
 	if(game.currentGameState == GAME_STATE_MENU){
 		Renderer2D_drawColoredRectangle(&renderer2D, 0, 0, WIDTH, HEIGHT, Renderer2D_getColor(0.0, 0.0, 0.0), 1.0);
 	}
-
-	printf("numberOfEntities: %i\n", game.entities.size());
 
 	IGUI_render(&renderer2D);
 

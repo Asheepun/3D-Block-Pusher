@@ -168,11 +168,21 @@ void GL3D_uniformFloat(unsigned int shaderProgram, const char *locationName, flo
 	glUniform1f(location, x);
 
 }
+
 void GL3D_uniformTexture(unsigned int shaderProgram, const char *locationName, unsigned int locationIndex, unsigned int textureID){
 
 	unsigned int location = glGetUniformLocation(shaderProgram, locationName);
 	glUniform1i(location, locationIndex);
 	glActiveTexture(GL_TEXTURE0 + locationIndex);
 	glBindTexture(GL_TEXTURE_2D, textureID);
+
+}
+
+void GL3D_uniformTextureBuffer(unsigned int shaderProgram, const char *locationName, unsigned int locationIndex, unsigned int textureID){
+
+	unsigned int location = glGetUniformLocation(shaderProgram, locationName);
+	glUniform1i(location, locationIndex);
+	glActiveTexture(GL_TEXTURE0 + locationIndex);
+	glBindTexture(GL_TEXTURE_BUFFER, textureID);
 
 }
