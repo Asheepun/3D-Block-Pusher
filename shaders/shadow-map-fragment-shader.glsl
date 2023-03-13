@@ -2,11 +2,12 @@
 //in vec4 fragmentPosition;
 //in vec4 relativeModelPosition;
 in float depth;
+in vec4 inputColor;
 
 uniform mat4 modelMatrix;
 uniform mat4 modelRotationMatrix;
 uniform mat4 cameraMatrix;
-uniform vec4 inputColor;
+//uniform vec4 inputColor;
 
 void main(){
 

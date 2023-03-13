@@ -76,8 +76,8 @@ void main(){
 	bool inShadow = dot(lightDirection, modelNormal.xyz) > 0 || shadowDepthDiff > shadowDepthTolerance;
 	bool inTransparentShadow = transparentShadowDepthDiff > shadowDepthTolerance;
 
-	inShadow = false;
-	inTransparentShadow = false;
+	//inShadow = false;
+	//inTransparentShadow = false;
 
 	if(inShadow){
 		color *= ambientLightFactor;
