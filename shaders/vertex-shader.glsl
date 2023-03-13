@@ -39,22 +39,18 @@ void main(){
 
 	vec4 textureAtlasCoordinates = texelFetch(textureAtlasCoordinatesTextureBuffer, gl_InstanceID);
 
-	//calculate positions
-	vec4 vertexPosition = vec4(attribute_vertex.xyz, 1.0);
-	vec4 vertexNormal = vec4(attribute_normalVertex.xyz, 1.0);
-
-	//vertexPosition.x += gl_InstanceID * 10;
-
 	//calculate texture position
 	texturePosition = attribute_textureVertex;
-
-	//textureAtlasCoordinates = vec4(0.5, 0.0, 0.5, 1.0);
 
 	texturePosition.x *= textureAtlasCoordinates.z;
 	texturePosition.y *= textureAtlasCoordinates.w;
 
 	texturePosition.x += textureAtlasCoordinates.x;
 	texturePosition.y += textureAtlasCoordinates.y;
+
+	//calculate fragment position
+	vec4 vertexPosition = vec4(attribute_vertex.xyz, 1.0);
+	vec4 vertexNormal = vec4(attribute_normalVertex.xyz, 1.0);
 
 	fragmentPosition = vertexPosition;
 	fragmentNormal = vertexNormal;

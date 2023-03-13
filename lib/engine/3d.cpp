@@ -191,8 +191,6 @@ void TextureAtlas_init(TextureAtlas *textureAtlas_p, const char **pathsAndNames,
 
 			Vec4f coordinates = getVec4f(x / atlasWidth, 1.0 - textureDataDimensions[i].y / atlasHeight, textureDataDimensions[i].x / atlasWidth, textureDataDimensions[i].y / atlasHeight);
 
-			Vec4f_log(coordinates);
-
 			textureAtlas_p->textureCoordinates.push_back(coordinates);
 			
 			x += textureDataDimensions[i].x;
@@ -207,6 +205,25 @@ void TextureAtlas_init(TextureAtlas *textureAtlas_p, const char **pathsAndNames,
 	for(int i = 0; i < numberOfPaths; i++){
 		free(textureData[i]);
 	}
+
+}
+
+void TextureBuffer_init(TextureBuffer *textureBuffer_p, void *data, int size){
+
+	glGenBuffers(1, &textureBuffer_p->VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, textureBuffer_p->VBO);
+	glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+
+	glGenTextures(1, &textureBuffer_p->TB);
+	glBindTexture(GL_TEXTURE_BUFFER, textureBuffer_p->TB);
+	glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, textureBuffer_p->VBO);
+
+}
+
+void TextureBuffer_free(TextureBuffer *textureBuffer_p){
+	
+	glDeleteBuffers(1, &textureBuffer_p->VBO);
+	glDeleteTextures(1, &textureBuffer_p->TB);
 
 }
 

@@ -29,6 +29,11 @@ struct TextureAtlas{
 	Texture texture;
 };
 
+struct TextureBuffer{
+	unsigned int VBO;
+	unsigned int TB;
+};
+
 typedef struct VertexMesh{
 	Vec3f *vertices;
 	int length;
@@ -49,6 +54,10 @@ void Texture_initAsDepthMap(Texture *, int, int);
 void Texture_initAsColorMap(Texture *, int, int);
 
 void TextureAtlas_init(TextureAtlas *, const char **, int);
+
+void TextureBuffer_init(TextureBuffer *, void *, int);
+
+void TextureBuffer_free(TextureBuffer *);
 
 void GL3D_uniformMat4f(unsigned int, const char *, Mat4f);
 

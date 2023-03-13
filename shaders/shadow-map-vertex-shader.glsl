@@ -3,8 +3,6 @@ layout (location = 0) in vec3 attribute_vertex;
 layout (location = 1) in vec2 attribute_textureVertex;
 layout (location = 2) in vec3 attribute_normalVertex;
 
-//out vec4 fragmentPosition;
-//out vec4 relativeModelPosition;
 out float depth;
 out vec4 inputColor;
 
@@ -12,8 +10,6 @@ uniform samplerBuffer modelMatrixTextureBuffer;
 uniform samplerBuffer modelRotationMatrixTextureBuffer;
 uniform samplerBuffer inputColorTextureBuffer;
 
-//uniform mat4 modelMatrix;
-//uniform mat4 modelRotationMatrix;
 uniform mat4 cameraMatrix;
 uniform vec3 lightDirection;
 

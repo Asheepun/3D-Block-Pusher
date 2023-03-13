@@ -2,14 +2,10 @@
 in vec4 fragmentPosition;
 in vec2 texturePosition;
 in vec4 fragmentNormal;
+in mat4 modelMatrix;
 
 out vec4 FragColor;
 
-uniform sampler2D shadowMapDepthTexture;
-uniform sampler2D transparentShadowMapDepthTexture;
-uniform sampler2D transparentShadowMapColorTexture;
-
-uniform mat4 modelMatrix;
 uniform mat4 modelRotationMatrix;
 uniform mat4 cameraMatrix;
 uniform mat4 perspectiveMatrix;
@@ -19,18 +15,6 @@ uniform float shadowMapScale;
 
 uniform vec4 inputColor;
 uniform vec3 lightDirection;
-
-vec4 lightColor = vec4(1.0, 1.0, 0.9, 1.0);
-
-float lightStrength = 1.0;
-
-float ambientLightFactor = 0.2;
-float diffuseLightFactor = 0.7;
-float specularLightFactor = 0.5;
-
-float gammaFactor = 1.3;
-
-float shinyFactor = 1.0;
 
 void main(){
 
