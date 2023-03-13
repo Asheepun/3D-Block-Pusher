@@ -18,6 +18,20 @@ typedef struct SmallString{
 
 }SmallString;
 
+typedef struct String{
+	char value[STRING_SIZE];
+
+	operator char* () { 
+	   return value; 
+	}
+
+	operator const char* () { 
+	   return value; 
+	}
+
+}String;
+
+
 void String_log(SmallString);
 
 void String_set(char *, const char *, int);

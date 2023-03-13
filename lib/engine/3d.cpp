@@ -128,6 +128,87 @@ void Texture_initFromFile(Texture *texture_p, const char *path, const char *name
 
 }
 
+void TextureAtlas_init(TextureAtlas *textureAtlas_p, const char **pathsAndNames, int numberOfPaths){
+
+	int atlasWidth = 0;
+	int atlasHeight = 0;
+
+	unsigned char *atlasData;
+	unsigned char *textureData[numberOfPaths];
+	Vec2f textureDataDimensions[numberOfPaths];
+
+	for(int i = 0; i < numberOfPaths; i++){
+
+		int width, height, channels;
+
+		textureData[i] = stbi_load(pathsAndNames[i * 2], &width, &height, &channels, 4);
+
+		textureDataDimensions[i].x = width;
+		textureDataDimensions[i].y = height;
+
+		atlasWidth += width;
+
+		if(height > atlasHeight){
+			atlasHeight = height;
+		}
+
+		SmallString name;
+		String_set(name, pathsAndNames[i * 2 + 1], SMALL_STRING_SIZE);
+		textureAtlas_p->names.push_back(name);
+
+	}
+
+	//create texture atlas data
+	atlasData = (unsigned char *)malloc(4 * sizeof(unsigned char) * atlasWidth * atlasHeight);
+
+	for(int y = 0; y < atlasHeight; y++){
+
+		int x = 0;
+
+		for(int i = 0; i < numberOfPaths; i++){
+
+			if(y < (int)textureDataDimensions[i].y){
+
+				unsigned char *dest = atlasData + 4 * (y * atlasWidth + x);
+				unsigned char *src = textureData[i] + 4 * (y * (int)textureDataDimensions[i].y);
+				int size = (int)textureDataDimensions[i].x * 4 * sizeof(unsigned char);
+
+				memcpy(dest, src, size);
+
+			}
+				
+			x += textureDataDimensions[i].x;
+
+		}
+	
+	}
+
+	//set texture coordinates
+	{
+		float x = 0.0;
+
+		for(int i = 0; i < numberOfPaths; i++){
+
+			Vec4f coordinates = getVec4f(x / atlasWidth, 1.0 - textureDataDimensions[i].y / atlasHeight, textureDataDimensions[i].x / atlasWidth, textureDataDimensions[i].y / atlasHeight);
+
+			Vec4f_log(coordinates);
+
+			textureAtlas_p->textureCoordinates.push_back(coordinates);
+			
+			x += textureDataDimensions[i].x;
+		
+		}
+	}
+
+	Texture_init(&textureAtlas_p->texture, "atlas", atlasData, atlasWidth, atlasHeight);
+
+	//free data
+	free(atlasData);
+	for(int i = 0; i < numberOfPaths; i++){
+		free(textureData[i]);
+	}
+
+}
 
 void GL3D_uniformMat4f(unsigned int shaderProgram, const char *locationName, Mat4f m){
 

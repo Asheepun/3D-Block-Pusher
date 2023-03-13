@@ -23,6 +23,12 @@ typedef struct Texture{
 	unsigned int ID;
 }Texture;
 
+struct TextureAtlas{
+	std::vector<SmallString> names;
+	std::vector<Vec4f> textureCoordinates;
+	Texture texture;
+};
+
 typedef struct VertexMesh{
 	Vec3f *vertices;
 	int length;
@@ -41,6 +47,8 @@ void Texture_initFromFile(Texture *, const char *, const char *);
 void Texture_initAsDepthMap(Texture *, int, int);
 
 void Texture_initAsColorMap(Texture *, int, int);
+
+void TextureAtlas_init(TextureAtlas *, const char **, int);
 
 void GL3D_uniformMat4f(unsigned int, const char *, Mat4f);
 

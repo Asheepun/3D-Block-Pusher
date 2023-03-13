@@ -83,6 +83,7 @@ typedef struct Game{
 
 	std::vector<Model> models;
 	std::vector<Texture> textures;
+	TextureAtlas textureAtlas;
 
 	enum GameState currentGameState;
 	bool mustInitGameState;

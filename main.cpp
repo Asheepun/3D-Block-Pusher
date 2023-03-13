@@ -186,6 +186,24 @@ void Engine_start(){
 		game.textures.push_back(texture);
 	}
 
+	{
+		const char *pathsAndNames[] = {
+			"assets/textures/cube-borders.png", "cube-borders",
+			"assets/textures/blank.png", "blank",
+			"assets/textures/player.png", "player",
+			"assets/textures/pusher-up.png", "pusher-up",
+			"assets/textures/pusher-north.png", "pusher-north",
+			"assets/textures/pusher-south.png", "pusher-south",
+			"assets/textures/pusher-east.png", "pusher-east",
+			"assets/textures/pusher-west.png", "pusher-west",
+		};
+
+		int numberOfPaths = sizeof(pathsAndNames) / sizeof(const char *);
+		numberOfPaths /= 2;
+
+		TextureAtlas_init(&game.textureAtlas, pathsAndNames, numberOfPaths);
+	}
+
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -506,6 +524,9 @@ void Engine_draw(){
 			std::vector<Vec4f> inputColors;
 			unsigned int inputColorsVBO;
 			unsigned int inputColorsTB;
+			std::vector<Vec4f> textureAtlasCoordinates;
+			unsigned int textureAtlasCoordinatesVBO;
+			unsigned int textureAtlasCoordinatesTB;
 			int numberOfInstances;
 		};
 
@@ -553,7 +574,24 @@ void Engine_draw(){
 
 			textureBufferContainer_p->modelRotationMatrices.push_back(modelRotationMat4f);
 
-			textureBufferContainer_p->inputColors.push_back(entity_p->color);
+			Vec4f inputColor = entity_p->color;
+
+			if(entity_p->ID == game.hoveredEntityID){
+				inputColor.x *= 0.5;
+				inputColor.y *= 0.5;
+				inputColor.z *= 0.5;
+			}
+
+			textureBufferContainer_p->inputColors.push_back(inputColor);
+
+			Vec4f textureAtlasCoordinates = getVec4f(0.0, 0.0, 1.0, 1.0);
+			for(int j = 0; j < game.textureAtlas.names.size(); j++){
+				if(strcmp(entity_p->textureName, game.textureAtlas.names[j]) == 0){
+					textureAtlasCoordinates = game.textureAtlas.textureCoordinates[j];
+				}
+			}
+			
+			textureBufferContainer_p->textureAtlasCoordinates.push_back(textureAtlasCoordinates);
 
 			textureBufferContainer_p->numberOfInstances++;
 		
@@ -589,6 +627,14 @@ void Engine_draw(){
 				glBindTexture(GL_TEXTURE_BUFFER, textureBufferContainer_p->inputColorsTB);
 				glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, textureBufferContainer_p->inputColorsVBO);
 
+				glGenBuffers(1, &textureBufferContainer_p->textureAtlasCoordinatesVBO);
+				glBindBuffer(GL_ARRAY_BUFFER, textureBufferContainer_p->textureAtlasCoordinatesVBO);
+				glBufferData(GL_ARRAY_BUFFER, sizeof(Vec4f) * textureBufferContainer_p->textureAtlasCoordinates.size(), &textureBufferContainer_p->textureAtlasCoordinates[0], GL_STATIC_DRAW);
+
+				glGenTextures(1, &textureBufferContainer_p->textureAtlasCoordinatesTB);
+				glBindTexture(GL_TEXTURE_BUFFER, textureBufferContainer_p->textureAtlasCoordinatesTB);
+				glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, textureBufferContainer_p->textureAtlasCoordinatesVBO);
+
 			}
 		
 		}
@@ -598,9 +644,11 @@ void Engine_draw(){
 
 		glUseProgram(currentShaderProgram);
 
-		Texture *texture_p = &game.textures[1];
+		//Texture *texture_p = &game.textures[1];
+		//Texture *texture_p = game.atlas.texture;
 
-		GL3D_uniformTexture(currentShaderProgram, "colorTexture", 0, texture_p->ID);
+		GL3D_uniformTexture(currentShaderProgram, "colorTexture", 0, game.textureAtlas.texture.ID);
+		//GL3D_uniformTexture(currentShaderProgram, "colorTexture", 0, game.textures[1].ID);
 		GL3D_uniformTexture(currentShaderProgram, "shadowMapDepthTexture", 1, shadowMapDepthTexture.ID);
 		GL3D_uniformTexture(currentShaderProgram, "transparentShadowMapDepthTexture", 2, transparentShadowMapDepthTexture.ID);
 		GL3D_uniformTexture(currentShaderProgram, "transparentShadowMapColorTexture", 3, transparentShadowMapColorTexture.ID);
@@ -626,6 +674,7 @@ void Engine_draw(){
 				GL3D_uniformTextureBuffer(currentShaderProgram, "modelMatrixTextureBuffer", 4, textureBufferContainer_p->modelMatricesTB);
 				GL3D_uniformTextureBuffer(currentShaderProgram, "modelRotationMatrixTextureBuffer", 5, textureBufferContainer_p->modelRotationMatricesTB);
 				GL3D_uniformTextureBuffer(currentShaderProgram, "inputColorTextureBuffer", 6, textureBufferContainer_p->inputColorsTB);
+				GL3D_uniformTextureBuffer(currentShaderProgram, "textureAtlasCoordinatesTextureBuffer", 7, textureBufferContainer_p->textureAtlasCoordinatesTB);
 
 				glDrawArraysInstanced(GL_TRIANGLES, 0, model_p->numberOfTriangles * 3, textureBufferContainer_p->numberOfInstances);
 
@@ -647,6 +696,9 @@ void Engine_draw(){
 
 				glDeleteBuffers(1, &textureBufferContainer_p->inputColorsVBO);
 				glDeleteTextures(1, &textureBufferContainer_p->inputColorsTB);
+
+				glDeleteBuffers(1, &textureBufferContainer_p->textureAtlasCoordinatesVBO);
+				glDeleteTextures(1, &textureBufferContainer_p->textureAtlasCoordinatesTB);
 
 			}
 		}
