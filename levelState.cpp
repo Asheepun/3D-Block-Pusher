@@ -38,6 +38,7 @@ std::vector<enum Actions>actionQueue;
 enum Actions lastAction;
 
 std::vector<std::vector<Entity>>undoArray;
+std::vector<Entity>staticUndoEntities;
 
 std::vector<Vec3f> velocities;
 
@@ -133,6 +134,8 @@ void Game_initLevelState(Game *game_p){
 	game_p->needToRenderStaticShadows = true;
 
 
+	printf("inited level state!\n");
+
 }
 
 void Game_levelState(Game *game_p){
@@ -189,6 +192,10 @@ void Game_levelState(Game *game_p){
 
 		game_p->entities.clear();
 
+		for(int i = 0; i < staticUndoEntities.size(); i++){
+			game_p->entities.push_back(staticUndoEntities[i]);
+		}
+
 		for(int i = 0; i < undoArray[undoArray.size() - 1].size(); i++){
 			game_p->entities.push_back(undoArray[undoArray.size() - 1][i]);
 		}
@@ -201,6 +208,10 @@ void Game_levelState(Game *game_p){
 	&& undoArray.size() > 0){
 
 		game_p->entities.clear();
+
+		for(int i = 0; i < staticUndoEntities.size(); i++){
+			game_p->entities.push_back(staticUndoEntities[i]);
+		}
 
 		for(int i = 0; i < undoArray[0].size(); i++){
 			game_p->entities.push_back(undoArray[0][i]);
@@ -242,9 +253,31 @@ void Game_levelState(Game *game_p){
 		
 		}
 
-		//save entities for undo
+		std::vector<Entity> undoEntitiesCopy;
+
 		if(didAction){
-			undoArray.push_back(game_p->entities);
+			//update static undo entities
+			staticUndoEntities.clear();
+
+			for(int i = 0; i < game_p->entities.size(); i++){
+
+				Entity *entity_p = &game_p->entities[i];
+
+				if(isStaticEntity(*entity_p)){
+					staticUndoEntities.push_back(*entity_p);
+				}
+			}
+
+			//make copy of non static entities for undo
+			for(int i = 0; i < game_p->entities.size(); i++){
+
+				Entity *entity_p = &game_p->entities[i];
+
+				if(!isStaticEntity(*entity_p)){
+					undoEntitiesCopy.push_back(*entity_p);
+				}
+
+			}
 		}
 
 		//check if player collides with level doors
@@ -952,6 +985,12 @@ void Game_levelState(Game *game_p){
 		if(entityMoved){
 			moving = true;
 			moveTime = 0.0;
+		}
+
+		//save entities for undo
+		if(didAction
+		&& entityMoved){
+			undoArray.push_back(undoEntitiesCopy);
 		}
 	
 	}

@@ -180,6 +180,8 @@ void Game_addCloner(Game *, Vec3f);
 
 void Particle_init(Particle *);
 
+bool isStaticEntity(Entity);
+
 //FILE: levelState.cpp
 
 void Game_initLevelState(Game *);

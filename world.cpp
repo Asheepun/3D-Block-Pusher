@@ -167,3 +167,12 @@ void Particle_init(Particle *particle_p){
 	particle_p->counter = 0;
 
 }
+
+bool isStaticEntity(Entity entity){
+	return entity.type == ENTITY_TYPE_OBSTACLE
+		|| entity.type == ENTITY_TYPE_GOAL
+		|| entity.type == ENTITY_TYPE_RISER
+		|| entity.type == ENTITY_TYPE_CLONER
+		|| entity.type == ENTITY_TYPE_LEVEL_DOOR
+		|| entity.type == ENTITY_TYPE_LEVEL_CABLE;
+}
