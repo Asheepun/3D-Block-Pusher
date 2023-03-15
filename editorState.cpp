@@ -169,9 +169,9 @@ void Game_editorState(Game *game_p){
 
 				for(int i = 0; i < NUMBER_OF_DIRECTIONS; i++){
 
-					if(i == DIRECTION_DOWN){
-						continue;
-					}
+					//if(i == DIRECTION_DOWN){
+						//continue;
+					//}
 
 					if(IGUI_textButton_click(DIRECTION_NAMES[i], pos, 100, editingEntity_p->pusherDirection == i)){
 						editingEntity_p->pusherDirection = (enum Direction)i;

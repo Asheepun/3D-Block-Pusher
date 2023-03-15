@@ -160,6 +160,15 @@ static Vec3f DIRECTION_VECTORS[] = {
 	-1.0, 0.0, 0.0,
 };
 
+static int DIRECTION_COORDINATE_INDICES[] = {
+	1,
+	1,
+	2,
+	2,
+	0,
+	0,
+};
+
 static int MAX_NUMBER_OF_PARTICLES = 1024;
 
 //FILE: world.cpp
