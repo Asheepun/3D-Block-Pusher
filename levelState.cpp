@@ -64,22 +64,21 @@ Vec3f moveFunc(Vec3f startPos, Vec3f endPos, float t){
 
 }
 
-void Game_initLevelState(Game *game_p){
+void updateNumberOfPlayers(Game *game_p){
 
-	game_p->particles.clear();
-
-	undoArray.clear();
-
-	//set player ids
 	game_p->numberOfPlayers = 0;
+
 	for(int i = 0; i < game_p->entities.size(); i++){
-		if(game_p->entities[i].type == ENTITY_TYPE_PLAYER){
-			game_p->entities[i].playerID = game_p->numberOfPlayers;
-			game_p->numberOfPlayers++;
+		if(game_p->entities[i].type == ENTITY_TYPE_PLAYER
+		&& game_p->entities[i].playerID >= game_p->numberOfPlayers){
+			game_p->numberOfPlayers = game_p->entities[i].playerID + 1;
 		}
 	}
 
-	//reset entity grid
+}
+
+void resetEntityGrid(Game *game_p){
+
 	entityIDGrid.clear();
 
 	for(int x = 0; x < levelWidth; x++){
@@ -93,6 +92,26 @@ void Game_initLevelState(Game *game_p){
 			}
 		}
 	}
+
+}
+
+void Game_initLevelState(Game *game_p){
+
+	game_p->particles.clear();
+
+	game_p->numberOfPlayers = 0;
+
+	for(int i = 0; i < game_p->entities.size(); i++){
+		if(game_p->entities[i].type == ENTITY_TYPE_PLAYER){
+			game_p->entities[i].playerID = game_p->numberOfPlayers;
+			game_p->numberOfPlayers++;
+		}
+	}
+
+	updateNumberOfPlayers(game_p);
+	resetEntityGrid(game_p);
+
+	undoArray.clear();
 
 	if(strcmp(game_p->currentLevel, "levelhub") == 0){
 
@@ -132,7 +151,6 @@ void Game_initLevelState(Game *game_p){
 	}
 
 	game_p->needToRenderStaticShadows = true;
-
 
 	printf("inited level state!\n");
 
@@ -202,6 +220,12 @@ void Game_levelState(Game *game_p){
 
 		undoArray.pop_back();
 		actionQueue.clear();
+
+		updateNumberOfPlayers(game_p);
+		resetEntityGrid(game_p);
+
+		return;
+
 	}
 
 	if(Engine_keys[ENGINE_KEY_R].downed
@@ -219,6 +243,11 @@ void Game_levelState(Game *game_p){
 
 		undoArray.clear();
 		actionQueue.clear();
+
+		updateNumberOfPlayers(game_p);
+		resetEntityGrid(game_p);
+
+		return;
 
 	}
 
@@ -592,6 +621,7 @@ void Game_levelState(Game *game_p){
 								sticked = true;
 
 								playerIDs.push_back(entity2_p->playerID);
+
 							}
 
 						}
@@ -626,6 +656,16 @@ void Game_levelState(Game *game_p){
 
 		}
 
+		for(int i = 0; i < game_p->entities.size(); i++){
+
+			Entity *entity_p = &game_p->entities[i];
+
+			if(entity_p->type == ENTITY_TYPE_PLAYER){
+				printf("index: %i, playerID: %i\n", i, entity_p->playerID);
+			}
+
+		}
+
 		//clear velocities
 		velocities.clear();
 
@@ -638,6 +678,8 @@ void Game_levelState(Game *game_p){
 		for(int i = 0; i < game_p->entities.size(); i++){
 
 			Entity *entity_p = &game_p->entities[i];
+
+			entity_p->velocityIndex = -1;
 
 			if(entity_p->type == ENTITY_TYPE_ROCK
 			|| entity_p->type == ENTITY_TYPE_STICKY_ROCK){
@@ -654,6 +696,14 @@ void Game_levelState(Game *game_p){
 				entity_p->velocityIndex = entity_p->playerID;
 			}
 
+		}
+
+		//create blocked checking
+		bool blockedVelocityCoordinates[velocities.size()][3];
+		for(int i = 0; i < velocities.size(); i++){
+			blockedVelocityCoordinates[i][0] = false;
+			blockedVelocityCoordinates[i][1] = false;
+			blockedVelocityCoordinates[i][2] = false;
 		}
 
 		//handle floating entities
@@ -678,14 +728,15 @@ void Game_levelState(Game *game_p){
 					
 					Entity *entity2_p = &game_p->entities[j];
 
-					if((entity2_p->type == ENTITY_TYPE_PLAYER
+					if(entity1_p->ID != entity2_p->ID
+					&& (entity2_p->type == ENTITY_TYPE_PLAYER
 					|| entity2_p->type == ENTITY_TYPE_ROCK
 					|| entity2_p->type == ENTITY_TYPE_STICKY_ROCK)
 					&& checkEqualsVec3f(entity1_p->pos, entity2_p->pos, 0.001)){
 
-						for(int k = 0; k < 3; k++){
-							if(fabs(DIRECTION_VECTORS[entity1_p->pusherDirection][k]) > 0.001){
-								velocities[entity2_p->velocityIndex][k] = DIRECTION_VECTORS[entity1_p->pusherDirection][k];
+						for(int c = 0; c < 3; c++){
+							if(fabs(DIRECTION_VECTORS[entity1_p->pusherDirection][c]) > 0.001){
+								velocities[entity2_p->velocityIndex][c] = DIRECTION_VECTORS[entity1_p->pusherDirection][c];
 							}
 						}
 
@@ -727,7 +778,8 @@ void Game_levelState(Game *game_p){
 
 						while(ID != -1){
 							
-							if(checkEntity_p->type == ENTITY_TYPE_OBSTACLE){
+							if(checkEntity_p->type == ENTITY_TYPE_OBSTACLE
+							|| blockedVelocityCoordinates[checkEntity_p->velocityIndex][c]){
 								stopped = true;
 								break;
 							}
@@ -742,6 +794,7 @@ void Game_levelState(Game *game_p){
 						if(stopped){
 
 							velocities[entity_p->velocityIndex][c] = 0.0;
+							blockedVelocityCoordinates[entity_p->velocityIndex][c] = true;
 
 						}
 
@@ -823,63 +876,6 @@ void Game_levelState(Game *game_p){
 				}
 			}
 
-			//check if players and rocks collide with obstacles or stationary entity
-			for(int c = 0; c < 3; c++){
-				for(int i = 0; i < game_p->entities.size(); i++){
-					
-					Entity *entity_p = &game_p->entities[i];
-
-					if((entity_p->type == ENTITY_TYPE_PLAYER
-					|| entity_p->type == ENTITY_TYPE_ROCK
-					|| entity_p->type == ENTITY_TYPE_STICKY_ROCK)
-					&& fabs(velocities[entity_p->velocityIndex][c]) > 0.001){
-
-						Vec3f checkPos = entity_p->pos;
-
-						float searchVelocity = velocities[entity_p->velocityIndex][c];
-
-						checkPos[c] += searchVelocity;
-
-						size_t ID = entityIDGrid[getEntityIDGridIndexFromPos(checkPos)];
-						Entity *checkEntity_p = Game_getEntityByID(game_p, ID);
-
-						bool stopped = false;
-
-						while(ID != -1){
-							
-							if(checkEntity_p->type == ENTITY_TYPE_OBSTACLE
-							|| fabs(velocities[checkEntity_p->velocityIndex][c]) < 0.001){
-								stopped = true;
-								break;
-							}
-
-							checkPos[c] += searchVelocity;
-
-							ID = entityIDGrid[getEntityIDGridIndexFromPos(checkPos)];
-							checkEntity_p = Game_getEntityByID(game_p, ID);
-
-						}
-
-						if(stopped){
-
-							while(!checkEqualsVec3f(checkPos, entity_p->pos, 0.001)){
-
-								checkPos[c] -= searchVelocity;
-
-								ID = entityIDGrid[getEntityIDGridIndexFromPos(checkPos)];
-								checkEntity_p = Game_getEntityByID(game_p, ID);
-								
-								velocities[checkEntity_p->velocityIndex][c] = 0.0;
-
-							}
-
-						}
-					
-					}
-
-				}
-			}
-
 			//skip friction for last iteration
 			if(iterations == numberOfPushingIterations - 1){
 				continue;
@@ -914,6 +910,7 @@ void Game_levelState(Game *game_p){
 
 					if(ID != -1
 					&& checkEntity_p->type != ENTITY_TYPE_OBSTACLE
+					&& checkEntity_p->type != ENTITY_TYPE_PLAYER
 					&& checkEqualsVec3f(velocities[checkEntity_p->velocityIndex], getVec3f(0.0, 0.0, 0.0), 0.001)){
 
 						velocities[checkEntity_p->velocityIndex].x = velocities[entity_p->velocityIndex].x;
@@ -936,18 +933,25 @@ void Game_levelState(Game *game_p){
 
 				Entity *entity_p = &game_p->entities[i];
 
-				if(entityMovesY){
-					velocities[entity_p->velocityIndex].x = 0.0;
-					velocities[entity_p->velocityIndex].z = 0.0;
-				}
-
-				if(!entityMovesY
+				if(entity_p->velocityIndex != -1
 				&& fabs(velocities[entity_p->velocityIndex].y) > 0.001){
 					entityMovesY = true;
-					i = -1;
-					continue;
+					break;
 				}
 
+			}
+
+			if(entityMovesY){
+				for(int i = 0; i < game_p->entities.size(); i++){
+
+					Entity *entity_p = &game_p->entities[i];
+
+					if(entity_p->velocityIndex != -1){
+						velocities[entity_p->velocityIndex].x = 0.0;
+						velocities[entity_p->velocityIndex].z = 0.0;
+					}
+
+				}
 			}
 		
 		}
