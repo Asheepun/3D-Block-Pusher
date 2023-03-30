@@ -656,6 +656,7 @@ void Game_levelState(Game *game_p){
 
 		}
 
+		/*
 		for(int i = 0; i < game_p->entities.size(); i++){
 
 			Entity *entity_p = &game_p->entities[i];
@@ -665,6 +666,7 @@ void Game_levelState(Game *game_p){
 			}
 
 		}
+		*/
 
 		//clear velocities
 		velocities.clear();
@@ -699,11 +701,11 @@ void Game_levelState(Game *game_p){
 		}
 
 		//create blocked checking
-		bool blockedVelocityCoordinates[velocities.size()][3];
+		bool blockedVelocityDirections[velocities.size()][6];
 		for(int i = 0; i < velocities.size(); i++){
-			blockedVelocityCoordinates[i][0] = false;
-			blockedVelocityCoordinates[i][1] = false;
-			blockedVelocityCoordinates[i][2] = false;
+			for(int j = 0; j < 6; j++){
+				blockedVelocityDirections[i][j] = false;
+			}
 		}
 
 		//handle floating entities
@@ -766,6 +768,7 @@ void Game_levelState(Game *game_p){
 					&& fabs(velocities[entity_p->velocityIndex][c]) > 0.001){
 
 						float searchVelocity = velocities[entity_p->velocityIndex][c];
+						enum Direction searchVelocityDirection = (enum Direction)(c * 2 + (int)ceil(-searchVelocity / 2.0));
 
 						Vec3f checkPos = entity_p->pos;
 
@@ -779,7 +782,7 @@ void Game_levelState(Game *game_p){
 						while(ID != -1){
 							
 							if(checkEntity_p->type == ENTITY_TYPE_OBSTACLE
-							|| blockedVelocityCoordinates[checkEntity_p->velocityIndex][c]){
+							|| blockedVelocityDirections[checkEntity_p->velocityIndex][searchVelocityDirection]){
 								stopped = true;
 								break;
 							}
@@ -794,7 +797,7 @@ void Game_levelState(Game *game_p){
 						if(stopped){
 
 							velocities[entity_p->velocityIndex][c] = 0.0;
-							blockedVelocityCoordinates[entity_p->velocityIndex][c] = true;
+							blockedVelocityDirections[entity_p->velocityIndex][searchVelocityDirection] = true;
 
 						}
 
