@@ -41,12 +41,9 @@ Texture transparentShadowMapDepthTextureStatic;
 Texture transparentShadowMapColorTextureStatic;
 int SHADOW_MAP_WIDTH = 2000;
 int SHADOW_MAP_HEIGHT = 2000;
-float shadowMapScale = 10.0;
+float shadowMapScale = 15.0;
 
 float fov = M_PI / 4;
-
-Vec3f lightPos = { -10.0, 20.0, -10.0 };
-Vec3f lightDirection = { 0.5, -1.0, 0.5 };
 
 int viewMode = 0;
 
@@ -78,6 +75,9 @@ void Engine_start(){
 		game.needToRenderStaticShadows = true;
 
 		VertexMesh_initFromFile_mesh(&game.cubeMesh,  "assets/models/untitled.mesh");
+
+		game.lightPos = { -10.0, 20.0, -10.0 };
+		game.lightDirection = { 0.5, -1.0, 0.5 };
 
 		game.hoveredEntityID = -1;
 
@@ -469,8 +469,8 @@ void Engine_draw(){
 	Mat4f perspectiveMat4f = getPerspectiveMat4f(fov, (float)Engine_clientWidth / (float)Engine_clientHeight);
 
 	//setup shadow map camera matrix
-	Vec3f_normalize(&lightDirection);
-	Mat4f lightCameraMat4f = getLookAtMat4f(lightPos, lightDirection);
+	Vec3f_normalize(&game.lightDirection);
+	Mat4f lightCameraMat4f = getLookAtMat4f(game.lightPos, game.lightDirection);
 
 	//draw shadow map
 	unsigned int currentShaderProgram = shadowMapShader;
@@ -480,7 +480,7 @@ void Engine_draw(){
 	//set common uniforms
 	GL3D_uniformMat4f(currentShaderProgram, "cameraMatrix", lightCameraMat4f);
 	GL3D_uniformFloat(currentShaderProgram, "shadowMapScale", shadowMapScale);
-	GL3D_uniformVec3f(currentShaderProgram, "lightDirection", lightDirection);
+	GL3D_uniformVec3f(currentShaderProgram, "lightDirection", game.lightDirection);
 	
 	//draw entities instanced to shadow map
 	for(int i = 0; i < 2; i++){
@@ -546,7 +546,7 @@ void Engine_draw(){
 		GL3D_uniformMat4f(currentShaderProgram, "perspectiveMatrix", perspectiveMat4f);
 		GL3D_uniformMat4f(currentShaderProgram, "lightCameraMatrix", lightCameraMat4f);
 		GL3D_uniformFloat(currentShaderProgram, "shadowMapScale", shadowMapScale);
-		GL3D_uniformVec3f(currentShaderProgram, "lightDirection", lightDirection);
+		GL3D_uniformVec3f(currentShaderProgram, "lightDirection", game.lightDirection);
 
 		//draw entities instanced to world
 		for(int i = 0; i < 2; i++){
@@ -633,7 +633,7 @@ void Engine_draw(){
 		GL3D_uniformMat4f(currentShaderProgram, "perspectiveMatrix", perspectiveMat4f);
 		GL3D_uniformMat4f(currentShaderProgram, "lightCameraMatrix", lightCameraMat4f);
 		GL3D_uniformFloat(currentShaderProgram, "shadowMapScale", shadowMapScale);
-		GL3D_uniformVec3f(currentShaderProgram, "lightDirection", lightDirection);
+		GL3D_uniformVec3f(currentShaderProgram, "lightDirection", game.lightDirection);
 		GL3D_uniformVec4f(currentShaderProgram, "inputColor", color);
 
 		GL3D_uniformTextureBuffer(currentShaderProgram, "modelMatrixTextureBuffer", 4, modelMatricesTextureBuffer.TB);

@@ -93,6 +93,9 @@ typedef struct Game{
 	Vec2f cameraRotation;
 	Vec3f cameraDirection;
 
+	Vec3f lightPos;
+	Vec3f lightDirection;
+
 	size_t hoveredEntityID;
 	//char currentLevel[STRING_SIZE];
 	IGUI_TextInputData levelNameTextInputData;

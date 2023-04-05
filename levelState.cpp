@@ -23,7 +23,7 @@ bool moving = false;
 float moveTime = 0.0;
 int timeNotMoving = 0;
 
-int levelWidth = 100;
+int levelWidth = 200;
 int levelHeight = 16;
 
 int undoKeyHoldTime = 0;
@@ -113,7 +113,8 @@ void Game_initLevelState(Game *game_p){
 
 	undoArray.clear();
 
-	if(strcmp(game_p->currentLevel, "levelhub") == 0){
+	if(strcmp(game_p->currentLevel, "levelhub") == 0
+	|| strcmp(game_p->currentLevel, "levelhub2") == 0){
 
 		//color completed level doors
 		for(int i = 0; i < game_p->entities.size(); i++){
@@ -396,7 +397,7 @@ void Game_levelState(Game *game_p){
 				game_p->completedLevels.push_back(completedLevelName);
 
 				game_p->mustInitGameState = true;
-				Game_loadLevelByName(game_p, "levelhub");
+				Game_loadLevelByName(game_p, "levelhub2");
 				
 				//set player pos
 				for(int i = 0; i < game_p->entities.size(); i++){
@@ -427,6 +428,8 @@ void Game_levelState(Game *game_p){
 
 							if(entity2_p->type == ENTITY_TYPE_LEVEL_CABLE
 							&& getMagVec3f(getSubVec3f(entity1_p->pos, entity2_p->pos)) < 1.001){
+
+								entity2_p->color = COMPLETED_LEVEL_DOOR_COLOR;
 								
 								for(int k = 0; k < game_p->entities.size(); k++){
 
@@ -436,6 +439,8 @@ void Game_levelState(Game *game_p){
 									&& getMagVec3f(getSubVec3f(entity2_p->pos, entity3_p->pos)) < 1.001
 									&& k != lastK
 									&& k != secondLastK){
+
+										entity3_p->color = COMPLETED_LEVEL_DOOR_COLOR;
 
 										entity2_p = entity3_p;
 										secondLastK = lastK;
@@ -463,6 +468,16 @@ void Game_levelState(Game *game_p){
 										if(!alreadyOpen){
 											game_p->openLevels.push_back(name);
 										}
+
+									}
+
+									if(entity3_p->type == ENTITY_TYPE_OBSTACLE
+									&& getMagVec3f(getSubVec3f(entity2_p->pos, entity3_p->pos)) < 1.001
+									&& checkEqualsFloat(entity2_p->pos.y, entity3_p->pos.y, 0.001)
+									&& k != i){
+										
+										entity3_p->type = ENTITY_TYPE_ROCK;
+										entity3_p->color = ROCK_COLOR;
 
 									}
 
@@ -715,6 +730,7 @@ void Game_levelState(Game *game_p){
 
 			if(entity_p->floating){
 				velocities[entity_p->velocityIndex].y = 0.0;
+				blockedVelocityDirections[entity_p->velocityIndex][3] = true;
 			}
 
 		}
@@ -1039,8 +1055,11 @@ void Game_levelState(Game *game_p){
 	
 	}
 
-	//make camera follow player if in level hub
-	if(strcmp(game_p->currentLevel, "levelhub") == 0){
+	game_p->lightPos = getVec3f(-10.0, 20.0, -10.0);
+
+	//make camera and shadow map follow player if in level hub
+	if(strcmp(game_p->currentLevel, "levelhub") == 0
+	|| strcmp(game_p->currentLevel, "levelhub2") == 0){
 
 		//find player position
 		for(int i = 0; i < game_p->entities.size(); i++){
@@ -1048,7 +1067,14 @@ void Game_levelState(Game *game_p){
 			Entity *entity_p = &game_p->entities[i];
 
 			if(entity_p->type == ENTITY_TYPE_PLAYER){
+
 				Vec3f_add(&game_p->cameraPos, entity_p->pos);
+
+				game_p->lightPos = entity_p->pos;
+				game_p->lightPos.y = 20.0;
+				game_p->lightPos.x -= 10.0;
+				game_p->lightPos.z -= 5.0;
+
 				break;
 			}
 
