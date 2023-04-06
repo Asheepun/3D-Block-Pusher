@@ -766,6 +766,38 @@ void Game_levelState(Game *game_p){
 
 		}
 
+		//block entities next to risers
+		for(int i = 0; i < game_p->entities.size(); i++){
+			
+			Entity *entity_p = &game_p->entities[i];
+
+			if(entity_p->type == ENTITY_TYPE_RISER){
+
+				Vec3f checkPos = entity_p->pos;
+				Vec3f_add(&checkPos, DIRECTION_VECTORS[entity_p->pusherDirection]);
+
+				size_t ID = entityIDGrid[getEntityIDGridIndexFromPos(checkPos)];
+
+				if(ID != -1){
+
+					Entity *checkEntity_p = Game_getEntityByID(game_p, ID);
+
+					int c = DIRECTION_COORDINATE_INDICES[entity_p->pusherDirection];
+
+					enum Direction searchVelocityDirection = (enum Direction)(c * 2 + (entity_p->pusherDirection + 1) % 2);
+
+					//searchVelocityDirection = (enum Direction)3;
+					printf("check\n");
+
+					velocities[checkEntity_p->velocityIndex][c] = 0.0;
+					blockedVelocityDirections[checkEntity_p->velocityIndex][searchVelocityDirection] = true;
+					
+				}
+				
+			}
+
+		}
+
 		int numberOfPushingIterations = 10;
 
 		//iterate pushing and friction handling
@@ -823,6 +855,7 @@ void Game_levelState(Game *game_p){
 			}
 
 			//stop entities from pushing into risers
+			/*
 			for(int i = 0; i < game_p->entities.size(); i++){
 				
 				Entity *entity_p = &game_p->entities[i];
@@ -855,6 +888,7 @@ void Game_levelState(Game *game_p){
 				}
 
 			}
+			*/
 
 			//handle pushing
 			for(int c = 0; c < 3; c++){
